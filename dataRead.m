@@ -4,7 +4,7 @@
 
 
 %%%%%%% This part from Ewoud %%%%%%%%%
-filename = 'flightData2.data';
+filename = '17_04_20__14_22_51_SD.data';
 
 
 formatSpec = '%f%f%s%f%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
@@ -22,7 +22,7 @@ N = length(dataArray{1, 1})-1;
 %%%%%%% This part from Elgiz %%%%%%%%%
 
 % Selecting the drone with whose data you want to work with
-index_drone_select = find(dataArray{1,2}==25);
+index_drone_select = find(dataArray{1,2}==18);
 drone_select_id = zeros(length(dataArray{1,1}),1);
 % Set indexes to 1s if it is the drone of interest
 drone_select_id(index_drone_select) = 1;
@@ -83,54 +83,19 @@ t_altitude = dataArray{1, 1}(gps_id);
 
 % Labeling outputs (Fault, Normal)
 
-% FAULT 1
+% FAULT (Here different faults are all labeled under one category which is fault) 
 % Finding the faulty command indexes
-index_negative1 = find(dataArray{1,7} < 0);
-negative1_id = zeros(length(dataArray{1,7}),1);
-% Sets indexes to 1s if the altitude is greater than the given limit
-negative1_id(index_negative1) = 1;
-% And with commands id to find negative values corresponding to COMMANDS 
-faultyCommand1_id = negative1_id & commands_id_only & flight_duration_id &drone_select_id;
-fault1_index = find(faultyCommand1_id==1);
+% SETTINGS give the multiplication factor that is used to inject the fault
+% to control surfaces. 
 
-isFault1Command = ismember(commands_index,fault1_index);
-faulty1_id = diff(isFault1Command)~=0;
-changingIndexes1 = find(faulty1_id==1);
-groupedChangingIndexes1 = reshape(changingIndexes1,2,[]);
-% detecting change one index before
-[m,n] = size(groupedChangingIndexes1);
-groupedChangingIndexes1 = ones(m,n) + groupedChangingIndexes1;
+settings_id = strcmp(dataArray{1,3},'SETTINGS');
 
-isFault1 = zeros(length(dataArray{1,1}),1);
+fault1_id_only = dataArray{1,4} ~= 1;
+fault2_id_only = array_col_5 ~= 1;
+fault_id_only = fault1_id_only | fault2_id_only; 
 
-for i = 1:n
-    isFault1(commands_index(groupedChangingIndexes1(1,i)) + 1 : commands_index(groupedChangingIndexes1(2,i))) = 1;
-end
-
-
-% FAULT 2
-% Finding the faulty command indexes
-index_negative2 = find(dataArray{1,8} < 0);
-negative2_id = zeros(length(dataArray{1,8}),1);
-% Sets indexes to 1s if the altitude is greater than the given limit
-negative2_id(index_negative2) = 1;
-% And with commands id to find negative values corresponding to COMMANDS 
-faultyCommand2_id = negative2_id & commands_id_only & flight_duration_id &drone_select_id;
-fault2_index = find(faultyCommand2_id==1);
-
-isFault2Command = ismember(commands_index,fault2_index);
-faulty2_id = diff(isFault2Command)~=0;
-changingIndexes2 = find(faulty2_id==1);
-groupedChangingIndexes2 = reshape(changingIndexes2,2,[]);
-% detecting change one index before
-[m,n] = size(groupedChangingIndexes2);
-groupedChangingIndexes2 = ones(m,n) + groupedChangingIndexes2;
-
-isFault2 = zeros(length(dataArray{1,1}),1);
-
-for i = 1:n
-    isFault2(commands_index(groupedChangingIndexes2(1,i)) + 1 : commands_index(groupedChangingIndexes2(2,i))) = 1;
-end
+fault_id = fault_id_only & settings_id & flight_duration_id & drone_select_id;
+fault_index = find(fault_id==1);
 
 
 %%%%%%%%%  Hello Ewoud %%%%%%%%%%
