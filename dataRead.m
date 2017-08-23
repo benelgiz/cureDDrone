@@ -70,6 +70,13 @@ gyro(:,2) = array_col_5(gyro_id);
 gyro(:,3) = dataArray{1, 6}(gyro_id);
 t_gyro = dataArray{1, 1}(gyro_id);
 
+accel_id_only = strcmp(dataArray{1,3},'IMU_ACCEL');
+accel_id = accel_id_only & drone_select_id & flight_duration_id;
+accel(:,1) = dataArray{1, 4}(accel_id);
+accel(:,2) = array_col_5(accel_id);
+accel(:,3) = dataArray{1, 6}(accel_id);
+t_accel = dataArray{1, 1}(accel_id);
+
 commands_id_only = strcmp(dataArray{1,3},'COMMANDS');
 commands_id = drone_select_id & commands_id_only & flight_duration_id;
 commands_index = find(commands_id == 1);
@@ -88,15 +95,36 @@ t_altitude = dataArray{1, 1}(gps_id);
 % SETTINGS give the multiplication factor that is used to inject the fault
 % to control surfaces. 
 
+% Each time a fault is injected from the ground station, there
+% appears a SETTINGS message, with the information on the fault signal.
+% An example : 535.8420 18 SETTINGS 1.000000 0.500000
+%              [time  droneNum typeMass leftContSurfaceEfficiency
+%              rightContSurfaceEfficiency]
+% The values 1.000000 and 0.500000 are manual inputs from GCS by operator.
+
 settings_id = strcmp(dataArray{1,3},'SETTINGS');
+settings_index = find(settings_id == 1);
 
-fault1_id_only = dataArray{1,4} ~= 1;
-fault2_id_only = array_col_5 ~= 1;
-fault_id_only = fault1_id_only | fault2_id_only; 
+% Indexes of setting command where drone set to nominal control surface
+% condition (1.00 1.00 for multiplicative fault)
+set_nominal = settings_index((dataArray{1,4}(settings_index)==1)&(array_col_5(settings_index)==1));
 
-fault_id = fault_id_only & settings_id & flight_duration_id & drone_select_id;
-fault_index = find(fault_id==1);
+% number of fault sets 
+num_fault_set = length(settings_index) - length(set_nominal);
 
+j = 1;
+k = 1;
+for i = 1 : (length(settings_index) - 1)
+    if ~any(set_nominal==settings_index(i))
+        % fault_start_stop  rows : starting_index end_index
+        %                   coloum : each coloumn is for a different fault
+        %                   injected
+        fault_start_stop(1:2,j) = [settings_index(i) (settings_index(i + 1) - 1)]';
+        j = j + 1;
+    else nominal_start_stop(1:2,k) = [settings_index(i) (settings_index(i + 1) - 1)]';
+        k = k + 1;
+    end
+end
 
 %%%%%%%%%  Hello Ewoud %%%%%%%%%%
 % act_id = strcmp(dataArray{1,3},'ROTORCRAFT_CMD');
