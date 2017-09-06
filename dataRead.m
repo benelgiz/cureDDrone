@@ -112,6 +112,9 @@ set_nominal = settings_index((dataArray{1,4}(settings_index)==1)&(array_col_5(se
 % number of fault sets 
 num_fault_set = length(settings_index) - length(set_nominal);
 
+% Initialization fault_start_stop and nominal_start_stop vectors
+fault_start_stop = zeros(2, num_fault_set);
+nominal_start_stop = zeros(2, length(set_nominal)-1);
 j = 1;
 k = 1;
 for i = 1 : (length(settings_index) - 1)
@@ -121,6 +124,7 @@ for i = 1 : (length(settings_index) - 1)
         %                   injected
         fault_start_stop(1:2,j) = [settings_index(i) (settings_index(i + 1) - 1)]';
         j = j + 1;
+        
     else nominal_start_stop(1:2,k) = [settings_index(i) (settings_index(i + 1) - 1)]';
         k = k + 1;
     end
