@@ -4,7 +4,10 @@
 
 
 %%%%%%% This part from Ewoud %%%%%%%%%
-filename = 'flightData2.data';
+% filename = '17_04_20__14_22_51_SD.data'; % Mulitplicative fault only
+filename = '17_07_06__10_21_07_SD.data'; % Muret with Michel
+% filename = '17_09_07__10_07_55_SD.data'; 
+
 
 
 formatSpec = '%f%f%s%f%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
@@ -22,7 +25,7 @@ N = length(dataArray{1, 1})-1;
 %%%%%%% This part from Elgiz %%%%%%%%%
 
 % Selecting the drone with whose data you want to work with
-index_drone_select = find(dataArray{1,2}==25);
+index_drone_select = find(dataArray{1,2}==18);
 drone_select_id = zeros(length(dataArray{1,1}),1);
 % Set indexes to 1s if it is the drone of interest
 drone_select_id(index_drone_select) = 1;
@@ -70,6 +73,13 @@ gyro(:,2) = array_col_5(gyro_id);
 gyro(:,3) = dataArray{1, 6}(gyro_id);
 t_gyro = dataArray{1, 1}(gyro_id);
 
+accel_id_only = strcmp(dataArray{1,3},'IMU_ACCEL');
+accel_id = accel_id_only & drone_select_id & flight_duration_id;
+accel(:,1) = dataArray{1, 4}(accel_id);
+accel(:,2) = array_col_5(accel_id);
+accel(:,3) = dataArray{1, 6}(accel_id);
+t_accel = dataArray{1, 1}(accel_id);
+
 commands_id_only = strcmp(dataArray{1,3},'COMMANDS');
 commands_id = drone_select_id & commands_id_only & flight_duration_id;
 commands_index = find(commands_id == 1);
@@ -83,55 +93,45 @@ t_altitude = dataArray{1, 1}(gps_id);
 
 % Labeling outputs (Fault, Normal)
 
-% FAULT 1
+% FAULT (Here different faults are all labeled under one category which is fault) 
 % Finding the faulty command indexes
-index_negative1 = find(dataArray{1,7} < 0);
-negative1_id = zeros(length(dataArray{1,7}),1);
-% Sets indexes to 1s if the altitude is greater than the given limit
-negative1_id(index_negative1) = 1;
-% And with commands id to find negative values corresponding to COMMANDS 
-faultyCommand1_id = negative1_id & commands_id_only & flight_duration_id &drone_select_id;
-fault1_index = find(faultyCommand1_id==1);
+% SETTINGS give the multiplication factor that is used to inject the fault
+% to control surfaces. 
 
-isFault1Command = ismember(commands_index,fault1_index);
-faulty1_id = diff(isFault1Command)~=0;
-changingIndexes1 = find(faulty1_id==1);
-groupedChangingIndexes1 = reshape(changingIndexes1,2,[]);
-% detecting change one index before
-[m,n] = size(groupedChangingIndexes1);
-groupedChangingIndexes1 = ones(m,n) + groupedChangingIndexes1;
+% Each time a fault is injected from the ground station, there
+% appears a SETTINGS message, with the information on the fault signal.
+% An example : 535.8420 18 SETTINGS 1.000000 0.500000
+%              [time  droneNum typeMass leftContSurfaceEfficiency
+%              rightContSurfaceEfficiency]
+% The values 1.000000 and 0.500000 are manual inputs from GCS by operator.
 
-isFault1 = zeros(length(dataArray{1,1}),1);
+settings_id = strcmp(dataArray{1,3},'SETTINGS');
+settings_index = find(settings_id == 1);
 
-for i = 1:n
-    isFault1(commands_index(groupedChangingIndexes1(1,i)) + 1 : commands_index(groupedChangingIndexes1(2,i))) = 1;
+% Indexes of setting command where drone set to nominal control surface
+% condition (1.00 1.00 for multiplicative fault)
+set_nominal = settings_index((dataArray{1,4}(settings_index)==1)&(array_col_5(settings_index)==1)&(dataArray{1,6}(settings_index)==0)&(dataArray{1,7}(settings_index)==0));
+
+% number of fault sets 
+num_fault_set = length(settings_index) - length(set_nominal);
+
+% Initialization fault_start_stop and nominal_start_stop vectors
+fault_start_stop = zeros(2, num_fault_set);
+nominal_start_stop = zeros(2, length(set_nominal)-1);
+j = 1;
+k = 1;
+for i = 1 : (length(settings_index) - 1)
+    if ~any(set_nominal==settings_index(i))
+        % fault_start_stop  rows : starting_index end_index
+        %                   coloum : each coloumn is for a different fault
+        %                   injected
+        fault_start_stop(1:2,j) = [settings_index(i) (settings_index(i + 1) - 1)]';
+        j = j + 1;
+        
+    else nominal_start_stop(1:2,k) = [settings_index(i) (settings_index(i + 1) - 1)]';
+        k = k + 1;
+    end
 end
-
-
-% FAULT 2
-% Finding the faulty command indexes
-index_negative2 = find(dataArray{1,8} < 0);
-negative2_id = zeros(length(dataArray{1,8}),1);
-% Sets indexes to 1s if the altitude is greater than the given limit
-negative2_id(index_negative2) = 1;
-% And with commands id to find negative values corresponding to COMMANDS 
-faultyCommand2_id = negative2_id & commands_id_only & flight_duration_id &drone_select_id;
-fault2_index = find(faultyCommand2_id==1);
-
-isFault2Command = ismember(commands_index,fault2_index);
-faulty2_id = diff(isFault2Command)~=0;
-changingIndexes2 = find(faulty2_id==1);
-groupedChangingIndexes2 = reshape(changingIndexes2,2,[]);
-% detecting change one index before
-[m,n] = size(groupedChangingIndexes2);
-groupedChangingIndexes2 = ones(m,n) + groupedChangingIndexes2;
-
-isFault2 = zeros(length(dataArray{1,1}),1);
-
-for i = 1:n
-    isFault2(commands_index(groupedChangingIndexes2(1,i)) + 1 : commands_index(groupedChangingIndexes2(2,i))) = 1;
-end
-
 
 %%%%%%%%%  Hello Ewoud %%%%%%%%%%
 % act_id = strcmp(dataArray{1,3},'ROTORCRAFT_CMD');
