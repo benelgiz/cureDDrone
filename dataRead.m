@@ -4,7 +4,10 @@
 
 
 %%%%%%% This part from Ewoud %%%%%%%%%
-filename = '17_04_20__14_22_51_SD.data';
+% filename = '17_04_20__14_22_51_SD.data'; % Mulitplicative fault only
+filename = '17_07_06__10_21_07_SD.data'; % Muret with Michel
+% filename = '17_09_07__10_07_55_SD.data'; 
+
 
 
 formatSpec = '%f%f%s%f%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
@@ -107,7 +110,7 @@ settings_index = find(settings_id == 1);
 
 % Indexes of setting command where drone set to nominal control surface
 % condition (1.00 1.00 for multiplicative fault)
-set_nominal = settings_index((dataArray{1,4}(settings_index)==1)&(array_col_5(settings_index)==1));
+set_nominal = settings_index((dataArray{1,4}(settings_index)==1)&(array_col_5(settings_index)==1)&(dataArray{1,6}(settings_index)==0)&(dataArray{1,7}(settings_index)==0));
 
 % number of fault sets 
 num_fault_set = length(settings_index) - length(set_nominal);
