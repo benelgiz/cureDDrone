@@ -1,0 +1,3119 @@
+<configuration data_file="17_07_06__10_21_07_SD.data" time_of_day="1499329267.45">
+  <conf>
+    <aircraft name="zagi" ac_id="52" airframe="airframes/ENAC/fixed-wing/faulty_zagi.xml" radio="radios/T10CG_SBUS.xml" telemetry="telemetry/fixedwing_flight_recorder.xml" flight_plan="flight_plans/basic.xml" gui_color="blue" settings="settings/fixedwing_basic.xml settings/control/ctl_basic.xml" settings_modules="modules/gps.xml modules/fault.xml modules/nav_catapult.xml modules/nav_basic_fw.xml modules/guidance_full_pid_fw.xml modules/stabilization_adaptive_fw.xml modules/ahrs_float_dcm.xml modules/imu_common.xml">
+      <radio sync_min="5000" sync_max="15000" pulse_type="POSITIVE" name="Futaba T10CG with SBUS" data_min="900" data_max="2100">
+        <channel neutral="1520" min="1107" max="1932" function="ROLL" ctl="A" average="0"/>
+        <channel neutral="1520" min="1107" max="1932" function="PITCH" ctl="B" average="0"/>
+        <channel neutral="1932" min="1932" max="1107" function="THROTTLE" ctl="C" average="0"/>
+        <channel neutral="1520" min="1107" max="1932" function="YAW" ctl="D" average="0"/>
+        <channel neutral="1520" min="2072" max="966" function="MODE" ctl="E" average="1"/>
+        <channel neutral="1520" min="966" max="2072" function="GAIN1" ctl="F" average="0"/>
+        <channel neutral="1520" min="966" max="2072" function="GAIN2" ctl="G" average="0"/>
+      </radio>
+      <dump>
+        <flight_plan security_height="25" name="Basic" max_dist_from_home="1500" lon0="1.27289" lat0="43.46223" ground_alt="185" alt="260">
+          <header>#include &quot;subsystems/datalink/datalink.h&quot;</header>
+          <waypoints>
+            <waypoint y="0" x="0" name="HOME"/>
+            <waypoint y="100.1" x="49.5" name="STDBY"/>
+            <waypoint y="189.9" x="10.1" name="1"/>
+            <waypoint y="139.1" x="132.3" name="2"/>
+            <waypoint y="-11.6" x="137.0" name="MOB"/>
+            <waypoint y="69.6" x="-119.2" name="S1"/>
+            <waypoint y="209.5" x="274.4" name="S2"/>
+            <waypoint y="45.1" x="177.4" name="AF" alt="215.0"/>
+            <waypoint y="57.0" x="28.8" name="TD" alt="185.0"/>
+            <waypoint y="-13.8" x="168.8" name="_BASELEG"/>
+            <waypoint y="162.3" x="-114.5" name="CLIMB"/>
+          </waypoints>
+          <variables>
+            <variable var="FAULT" step="0.5" min="0." max="15." init="1."/>
+          </variables>
+          <exceptions/>
+          <blocks>
+            <block name="Wait GPS" no="0">
+              <set var="autopilot.kill_throttle" value="1" no="0"/>
+              <while cond="!GpsFixValid()" no="1"/>
+            </block>
+            <block name="Geo init" no="1">
+              <while cond="LessThan(NavBlockTime(), 10)" no="0"/>
+              <call_once fun="NavSetGroundReferenceHere()" no="2"/>
+            </block>
+            <block name="Holding point" no="2">
+              <set var="autopilot.kill_throttle" value="1" no="0"/>
+              <attitude vmode="throttle" throttle="0" roll="0" no="1"/>
+            </block>
+            <block strip_icon="takeoff.png" strip_button="Takeoff (wp CLIMB)" name="Takeoff" key="t" group="home" no="3">
+              <exception deroute="Standby" cond="GetPosAlt() > GetAltRef()+25"/>
+              <set var="autopilot.kill_throttle" value="0" no="0"/>
+              <set var="autopilot.flight_time" value="0" no="1"/>
+              <go wp="CLIMB" vmode="throttle" throttle="1.0" pitch="15" from="HOME" no="2"/>
+            </block>
+            <block strip_icon="home.png" strip_button="Standby" name="Standby" key="Ctrl+a" group="home" no="4">
+              <circle wp="STDBY" radius="nav_radius" no="0"/>
+            </block>
+            <block strip_icon="eight.png" strip_button="Figure 8 (wp 1-2)" name="Figure 8 around wp 1" key="F8" group="base_pattern" no="5">
+              <eight turn_around="2" radius="nav_radius" center="1" no="1"/>
+            </block>
+            <block strip_icon="oval.png" strip_button="Oval (wp 1-2)" name="Oval 1-2" group="base_pattern" no="6">
+              <oval radius="nav_radius" p2="2" p1="1" no="1"/>
+            </block>
+            <block strip_icon="mob.png" strip_button="Circle around here" name="MOB" group="base_pattern" no="7">
+              <call_once fun="NavSetWaypointHere(WP_MOB)" no="0"/>
+              <set var="nav_radius" value="DEFAULT_CIRCLE_RADIUS" no="1"/>
+              <circle wp="MOB" radius="nav_radius" no="2"/>
+            </block>
+            <block strip_icon="survey.png" strip_button="Survey (wp S1-S2)" name="Survey S1-S2" group="extra_pattern" no="8">
+              <survey_rectangle wp2="S2" wp1="S1" grid="150" no="1"/>
+            </block>
+            <block strip_icon="path.png" strip_button="Path (1,2,S1,S2,STDBY)" name="Path 1,2,S1,S2,STDBY" group="extra_pattern" no="9">
+              <go from="1" hmode="route" wp="2" wpts="1,2 S1" no="0"/>
+              <go from="2" hmode="route" wp="S1" wpts="1,2 S1" no="1"/>
+              <go from="S1" hmode="route" wp="S2" wpts="S1, S2 STDBY" throttle="0.4" pitch="auto" approaching_time="1" no="2"/>
+              <go from="S2" hmode="route" wp="STDBY" wpts="S1, S2 STDBY" throttle="0.4" pitch="auto" approaching_time="1" no="3"/>
+              <deroute block="Standby" no="4"/>
+            </block>
+            <block strip_icon="land-right.png" strip_button="Land right (wp AF-TD)" name="Land Right AF-TD" group="land" no="10">
+              <set var="nav_radius" value="DEFAULT_CIRCLE_RADIUS" no="0"/>
+              <deroute block="land" no="1"/>
+            </block>
+            <block strip_icon="land-left.png" strip_button="Land left (wp AF-TD)" name="Land Left AF-TD" group="land" no="11">
+              <set var="nav_radius" value="-DEFAULT_CIRCLE_RADIUS" no="0"/>
+              <deroute block="land" no="1"/>
+            </block>
+            <block name="land" no="12">
+              <call_once fun="nav_compute_baseleg(WP_AF, WP_TD, WP__BASELEG, nav_radius)" no="0"/>
+              <circle wp="_BASELEG" until="NavCircleCount() > 0.5" radius="nav_radius" no="1"/>
+              <circle wp="_BASELEG" until="And(NavQdrCloseTo(DegOfRad(baseleg_out_qdr)-(nav_radius/fabs(nav_radius))*10), 10 > fabs(GetPosAlt() - WaypointAlt(WP__BASELEG)))" radius="nav_radius" no="2"/>
+            </block>
+            <block name="final" no="13">
+              <exception deroute="flare" cond="GetAltRef() + 10 > GetPosAlt()"/>
+              <go wp="TD" vmode="glide" hmode="route" from="AF" no="0"/>
+            </block>
+            <block name="flare" no="14">
+              <go wp="TD" vmode="throttle" throttle="0.0" hmode="route" from="AF" approaching_time="0" no="0"/>
+              <attitude vmode="throttle" until="FALSE" throttle="0.0" roll="0.0" no="1"/>
+            </block>
+            <block name="HOME" no="15">
+              <home no="0"/>
+            </block>
+          </blocks>
+        </flight_plan>
+        <stages>
+          <stage block="15" block_name="HOME" stage="0">
+            <home no="0"/>
+          </stage>
+          <stage block="14" block_name="flare" stage="1">
+            <attitude vmode="throttle" until="FALSE" throttle="0.0" roll="0.0" no="1"/>
+          </stage>
+          <stage block="14" block_name="flare" stage="0">
+            <go wp="TD" vmode="throttle" throttle="0.0" hmode="route" from="AF" approaching_time="0" no="0"/>
+          </stage>
+          <stage block="13" block_name="final" stage="0">
+            <go wp="TD" vmode="glide" hmode="route" from="AF" no="0"/>
+          </stage>
+          <stage block="12" block_name="land" stage="2">
+            <circle wp="_BASELEG" until="And(NavQdrCloseTo(DegOfRad(baseleg_out_qdr)-(nav_radius/fabs(nav_radius))*10), 10 > fabs(GetPosAlt() - WaypointAlt(WP__BASELEG)))" radius="nav_radius" no="2"/>
+          </stage>
+          <stage block="12" block_name="land" stage="1">
+            <circle wp="_BASELEG" until="NavCircleCount() > 0.5" radius="nav_radius" no="1"/>
+          </stage>
+          <stage block="12" block_name="land" stage="0">
+            <call_once fun="nav_compute_baseleg(WP_AF, WP_TD, WP__BASELEG, nav_radius)" no="0"/>
+          </stage>
+          <stage block="11" block_name="Land Left AF-TD" stage="1">
+            <deroute block="land" no="1"/>
+          </stage>
+          <stage block="11" block_name="Land Left AF-TD" stage="0">
+            <set var="nav_radius" value="-DEFAULT_CIRCLE_RADIUS" no="0"/>
+          </stage>
+          <stage block="10" block_name="Land Right AF-TD" stage="1">
+            <deroute block="land" no="1"/>
+          </stage>
+          <stage block="10" block_name="Land Right AF-TD" stage="0">
+            <set var="nav_radius" value="DEFAULT_CIRCLE_RADIUS" no="0"/>
+          </stage>
+          <stage block="9" block_name="Path 1,2,S1,S2,STDBY" stage="4">
+            <deroute block="Standby" no="4"/>
+          </stage>
+          <stage block="9" block_name="Path 1,2,S1,S2,STDBY" stage="3">
+            <go from="S2" hmode="route" wp="STDBY" wpts="S1, S2 STDBY" throttle="0.4" pitch="auto" approaching_time="1" no="3"/>
+          </stage>
+          <stage block="9" block_name="Path 1,2,S1,S2,STDBY" stage="2">
+            <go from="S1" hmode="route" wp="S2" wpts="S1, S2 STDBY" throttle="0.4" pitch="auto" approaching_time="1" no="2"/>
+          </stage>
+          <stage block="9" block_name="Path 1,2,S1,S2,STDBY" stage="1">
+            <go from="2" hmode="route" wp="S1" wpts="1,2 S1" no="1"/>
+          </stage>
+          <stage block="9" block_name="Path 1,2,S1,S2,STDBY" stage="0">
+            <go from="1" hmode="route" wp="2" wpts="1,2 S1" no="0"/>
+          </stage>
+          <stage block="8" block_name="Survey S1-S2" stage="1">
+            <survey_rectangle wp2="S2" wp1="S1" grid="150" no="1"/>
+          </stage>
+          <stage block="7" block_name="MOB" stage="2">
+            <circle wp="MOB" radius="nav_radius" no="2"/>
+          </stage>
+          <stage block="7" block_name="MOB" stage="1">
+            <set var="nav_radius" value="DEFAULT_CIRCLE_RADIUS" no="1"/>
+          </stage>
+          <stage block="7" block_name="MOB" stage="0">
+            <call_once fun="NavSetWaypointHere(WP_MOB)" no="0"/>
+          </stage>
+          <stage block="6" block_name="Oval 1-2" stage="1">
+            <oval radius="nav_radius" p2="2" p1="1" no="1"/>
+          </stage>
+          <stage block="5" block_name="Figure 8 around wp 1" stage="1">
+            <eight turn_around="2" radius="nav_radius" center="1" no="1"/>
+          </stage>
+          <stage block="4" block_name="Standby" stage="0">
+            <circle wp="STDBY" radius="nav_radius" no="0"/>
+          </stage>
+          <stage block="3" block_name="Takeoff" stage="2">
+            <go wp="CLIMB" vmode="throttle" throttle="1.0" pitch="15" from="HOME" no="2"/>
+          </stage>
+          <stage block="3" block_name="Takeoff" stage="1">
+            <set var="autopilot.flight_time" value="0" no="1"/>
+          </stage>
+          <stage block="3" block_name="Takeoff" stage="0">
+            <set var="autopilot.kill_throttle" value="0" no="0"/>
+          </stage>
+          <stage block="2" block_name="Holding point" stage="1">
+            <attitude vmode="throttle" throttle="0" roll="0" no="1"/>
+          </stage>
+          <stage block="2" block_name="Holding point" stage="0">
+            <set var="autopilot.kill_throttle" value="1" no="0"/>
+          </stage>
+          <stage block="1" block_name="Geo init" stage="2">
+            <call_once fun="NavSetGroundReferenceHere()" no="2"/>
+          </stage>
+          <stage block="1" block_name="Geo init" stage="0">
+            <while cond="LessThan(NavBlockTime(), 10)" no="0"/>
+          </stage>
+          <stage block="0" block_name="Wait GPS" stage="1">
+            <while cond="!GpsFixValid()" no="1"/>
+          </stage>
+          <stage block="0" block_name="Wait GPS" stage="0">
+            <set var="autopilot.kill_throttle" value="1" no="0"/>
+          </stage>
+        </stages>
+      </dump>
+      <settings>
+        <settings>
+          <dl_settings>
+            <dl_settings name="gps">
+              <dl_setting var="multi_gps_mode" values="AUTO|PRIMARY|SECONDARY" step="1" shortname="multi_mode" param="MULTI_GPS_MODE" module="subsystems/gps" min="0" max="2"/>
+            </dl_settings>
+          </dl_settings>
+        </settings>
+      </settings>
+      <settings>
+        <settings>
+          <dl_settings>
+            <dl_settings name="FAULT">
+              <dl_setting var="fault_right" step="0.1" shortname="right" module="modules/fault/fault" min="0.0" max="1.2" handler="Set_Right"/>
+              <dl_setting var="fault_left" step="0.1" shortname="left" module="modules/fault/fault" min="0.0" max="1.2" handler="Set_Left"/>
+              <dl_setting var="fault_offset_right" step="1" shortname="right_offset" module="modules/fault/fault" min="-9600.0" max="9600.0" handler="Set_Offset_Right"/>
+              <dl_setting var="fault_offset_left" step="1" shortname="left_offset" module="modules/fault/fault" min="-9600.0" max="9600.0" handler="Set_Offset_Left"/>
+            </dl_settings>
+          </dl_settings>
+        </settings>
+      </settings>
+      <settings>
+        <settings>
+          <dl_settings name="control">
+            <dl_settings name="catapult">
+              <dl_setting var="nav_catapult.motor_delay" unit="seconds" step="0.05" shortname="Motor Delay" param="NAV_CATAPULT_MOTOR_DELAY" module="nav/nav_catapult" min="0.05" max="5.0"/>
+              <dl_setting var="nav_catapult.accel_threshold" unit="g" step="0.1" shortname="G-Threshold" param="NAV_CATAPULT_ACCELERATION_THRESHOLD" min="-3.0" max="3.0"/>
+              <dl_setting var="nav_catapult.heading_delay" unit="seconds" step="0.05" shortname="Heading-Delay" param="NAV_CATAPULT_HEADING_DELAY" min="0.25" max="10."/>
+              <dl_setting var="nav_catapult.initial_pitch" unit="rad" step="0.5" shortname="TO Pitch" param="NAV_CATAPULT_INITIAL_PITCH" min="-20" max="40" alt_unit="deg"/>
+              <dl_setting var="nav_catapult.initial_throttle" unit="percent" step="0.01" shortname="TO Gas" param="NAV_CATAPULT_INITIAL_THROTTLE" min="0.0" max="1.0"/>
+            </dl_settings>
+          </dl_settings>
+        </settings>
+      </settings>
+      <settings>
+        <settings>
+          <dl_settings>
+            <dl_settings name="nav">
+              <dl_setting var="nav_radius" step="5" min="-500" max="500"/>
+              <dl_setting var="nav_course" step="5" min="0" max="359"/>
+              <dl_setting var="nav_mode" step="1" min="1" max="2"/>
+              <dl_setting var="nav_climb" step="0.5" min="-5" max="5"/>
+              <dl_setting var="fp_pitch" step="1" min="-15" max="15"/>
+              <dl_setting var="fp_throttle" step="0.01" min="0.0" max="1.0"/>
+              <dl_setting var="fp_climb" step="0.1" min="-5.0" max="5.0"/>
+              <dl_setting var="nav_shift" step="5" shortname="inc. shift" module="firmwares/fixedwing/nav" min="-50" max="50" handler="IncreaseShift"/>
+              <dl_setting var="nav_ground_speed_setpoint" step="0.5" shortname="ground speed" min="5" max="50"/>
+              <dl_setting var="nav_ground_speed_pgain" step="0.01" shortname="ground speed pgain" min="0" max="0.2"/>
+              <dl_setting var="nav_survey_shift" step="5" min="50" max="500"/>
+            </dl_settings>
+          </dl_settings>
+        </settings>
+      </settings>
+      <settings>
+        <settings>
+          <dl_settings>
+            <dl_settings name="control vert">
+              <dl_settings name="alt">
+                <dl_setting var="v_ctl_altitude_pgain" step="0.01" shortname="alt_pgain" param="V_CTL_ALTITUDE_PGAIN" min="0" max="0.2"/>
+              </dl_settings>
+              <dl_settings name="climb">
+                <dl_setting var="v_ctl_speed_mode" values="THROTTLE|AIRSPEED|GROUNDSPEED" step="1" shortname="speed mode" min="0" max="2">
+                  <strip_button value="0" name="TH" group="speed_mode"/>
+                  <strip_button value="1" name="AS" group="speed_mode"/>
+                  <strip_button value="2" name="GS" group="speed_mode"/>
+                </dl_setting>
+                <dl_setting var="v_ctl_auto_throttle_min_cruise_throttle" step="0.05" shortname="min cruise thr" param="V_CTL_AUTO_THROTTLE_MIN_CRUISE_THROTTLE" module="guidance/guidance_v" min="0.0" max="1"/>
+                <dl_setting var="v_ctl_auto_throttle_max_cruise_throttle" step="0.05" shortname="max cruise thr" param="V_CTL_AUTO_THROTTLE_MAX_CRUISE_THROTTLE" module="guidance/guidance_v" min="0.0" max="1"/>
+                <dl_setting var="v_ctl_auto_throttle_cruise_throttle" step="0.05" shortname="cruise throttle" param="V_CTL_AUTO_THROTTLE_NOMINAL_CRUISE_THROTTLE" module="guidance/guidance_v" min="0.0" max="1" handler="SetCruiseThrottle"/>
+                <dl_setting var="v_ctl_pitch_trim" unit="rad" step="0.1" shortname="pitch trim" param="V_CTL_PITCH_TRIM" min="-15" max="15" alt_unit="deg"/>
+                <dl_setting var="v_ctl_auto_pitch_pgain" step="0.001" shortname="pitch_p" param="V_CTL_AUTO_PITCH_PGAIN" min="0" max="0.1"/>
+                <dl_setting var="v_ctl_auto_pitch_igain" step="0.001" shortname="pitch_i" param="V_CTL_AUTO_PITCH_IGAIN" min="0" max="0.1"/>
+                <dl_setting var="v_ctl_auto_pitch_dgain" step="0.001" shortname="pitch_d" param="V_CTL_AUTO_PITCH_DGAIN" module="guidance/guidance_v_n" min="0" max="0.1"/>
+                <dl_setting var="v_ctl_auto_throttle_pgain" step="0.001" shortname="throttle_p" param="V_CTL_AUTO_THROTTLE_PGAIN" min="0" max="0.1"/>
+                <dl_setting var="v_ctl_auto_throttle_igain" step="0.001" shortname="throttle_i" param="V_CTL_AUTO_THROTTLE_IGAIN" min="0" max="0.1"/>
+                <dl_setting var="v_ctl_auto_throttle_dgain" step="0.001" shortname="throttle_d" param="V_CTL_AUTO_THROTTLE_DGAIN" min="0" max="0.1"/>
+                <dl_setting var="v_ctl_auto_throttle_climb_throttle_increment" step="0.01" shortname="throttle_incr" param="V_CTL_AUTO_THROTTLE_CLIMB_THROTTLE_INCREMENT" min="0" max="1"/>
+                <dl_setting var="v_ctl_auto_throttle_pitch_of_vz_pgain" step="0.01" shortname="pitch_of_vz" param="V_CTL_AUTO_THROTTLE_PITCH_OF_VZ_PGAIN" min="0" max="1"/>
+              </dl_settings>
+            </dl_settings>
+          </dl_settings>
+        </settings>
+      </settings>
+      <settings>
+        <settings>
+          <dl_settings>
+            <dl_settings name="control horiz">
+              <dl_settings name="trim">
+                <dl_setting var="ap_state->command_roll_trim" step="1" shortname="roll_trim" param="COMMAND_ROLL_TRIM" module="inter_mcu" min="-960" max="960"/>
+                <dl_setting var="ap_state->command_pitch_trim" step="1" shortname="pitch_trim" param="COMMAND_PITCH_TRIM" min="-960" max="960"/>
+                <dl_setting var="ap_state->command_yaw_trim" step="1" shortname="yaw_trim" param="COMMAND_YAW_TRIM" min="-9000" max="9000"/>
+              </dl_settings>
+              <dl_settings name="attitude">
+                <dl_setting var="h_ctl_roll_attitude_gain" step="250" shortname="roll_pgain" param="H_CTL_ROLL_ATTITUDE_GAIN" module="stabilization/stabilization_attitude" min="0" max="15000"/>
+                <dl_setting var="h_ctl_roll_rate_gain" step="250" shortname="roll_dgain" param="H_CTL_ROLL_RATE_GAIN" module="stabilization/stabilization_attitude" min="0" max="15000"/>
+                <dl_setting var="h_ctl_roll_igain" step="10" shortname="roll_igain" param="H_CTL_ROLL_IGAIN" module="stabilization/stabilization_adaptive" min="0" max="5000" handler="SetRollIGain"/>
+                <dl_setting var="h_ctl_pitch_pgain" step="250" shortname="pitch_pgain" param="H_CTL_PITCH_PGAIN" module="stabilization/stabilization_attitude" min="0" max="25000"/>
+                <dl_setting var="h_ctl_pitch_dgain" step="250" shortname="pitch_dgain" param="H_CTL_PITCH_DGAIN" module="stabilization/stabilization_attitude" min="0" max="50000"/>
+                <dl_setting var="h_ctl_pitch_igain" step="10" shortname="pitch_igain" param="H_CTL_PITCH_IGAIN" module="stabilization/stabilization_adaptive" min="0" max="5000" handler="SetPitchIGain"/>
+                <dl_setting var="h_ctl_pitch_of_roll" step="0.001" shortname="pitch_of_roll" param="H_CTL_PITCH_OF_ROLL" module="stabilization/stabilization_attitude" min="0." max=".3"/>
+                <dl_setting var="h_ctl_aileron_of_throttle" step="100" shortname="aileron_of_throttle" module="stabilization/stabilization_adaptive" min="0" max="5000"/>
+                <dl_setting var="h_ctl_roll_max_setpoint" unit="rad" step="1." shortname="max_roll" param="H_CTL_ROLL_MAX_SETPOINT" min="0" max="60" alt_unit="deg"/>
+                <dl_setting var="use_airspeed_ratio" values="FALSE|TRUE" step="1" min="0" max="1"/>
+              </dl_settings>
+              <dl_settings name="feedforward">
+                <dl_setting var="h_ctl_roll_Kffa" step="10" shortname="roll_Kffa" param="H_CTL_ROLL_KFFA" min="0" max="5000"/>
+                <dl_setting var="h_ctl_roll_Kffd" step="10" shortname="roll_Kffd" param="H_CTL_ROLL_KFFD" min="0" max="5000"/>
+                <dl_setting var="h_ctl_pitch_Kffa" step="10" shortname="pitch_Kffa" param="H_CTL_PITCH_KFFA" min="0" max="5000"/>
+                <dl_setting var="h_ctl_pitch_Kffd" step="10" shortname="pitch_Kffd" param="H_CTL_PITCH_KFFD" min="0" max="5000"/>
+              </dl_settings>
+              <dl_settings name="course">
+                <dl_setting var="h_ctl_course_pgain" step="0.05" shortname="course pgain" param="H_CTL_COURSE_PGAIN" min="0.1" max="3"/>
+                <dl_setting var="h_ctl_course_dgain" step="0.1" shortname="course dgain" min="0" max="2"/>
+                <dl_setting var="h_ctl_course_pre_bank_correction" step="0.05" shortname="pre bank cor" min="0.1" max="2"/>
+                <dl_setting var="h_ctl_roll_slew" step="0.01" shortname="roll slew" min="0.02" max="1"/>
+              </dl_settings>
+            </dl_settings>
+          </dl_settings>
+        </settings>
+      </settings>
+      <settings/>
+      <settings/>
+      <airframe name="FaultyZagi">
+        <firmware name="fixedwing">
+          <define name="USE_I2C1"/>
+          <define name="USE_GYRO_PITCH_RATE"/>
+          <target name="ap" board="apogee_1.0_chibios">
+            <module type="sbus" name="radio_control"/>
+          </target>
+          <target name="nps" board="pc">
+            <module type="ppm" name="radio_control"/>
+            <module type="jsbsim" name="fdm"/>
+          </target>
+          <module type="xbee_api" name="telemetry"/>
+          <module type="apogee" name="imu">
+            <define value="1" name="IMU_APOGEE_CHAN_X"/>
+            <define value="0" name="IMU_APOGEE_CHAN_Y"/>
+          </module>
+          <module type="float_dcm" name="ahrs"/>
+          <module type="alt_float" name="ins"/>
+          <module type="new" name="control"/>
+          <module name="navigation"/>
+          <module type="survey_polygon" name="nav"/>
+          <module type="catapult" name="nav"/>
+          <module name="takeoff_detect"/>
+          <module name="fault"/>
+          <module name="tlsf"/>
+          <module name="pprzlog"/>
+          <module type="sd_chibios" name="logger"/>
+          <module name="flight_recorder"/>
+          <module type="ublox" name="gps">
+            <configure value="B115200" name="GPS_BAUD"/>
+          </module>
+          <define value="TRUE" name="LOG_RAW_GPS"/>
+        </firmware>
+        <servos>
+          <servo no="0" neutral="1040" name="MOTOR" min="1040" max="2000"/>
+          <servo no="1" neutral="1586" name="AILEVON_LEFT" min="1900" max="1100"/>
+          <servo no="2" neutral="1416" name="AILEVON_RIGHT" min="1100" max="1900"/>
+        </servos>
+        <commands>
+          <axis name="THROTTLE" failsafe_value="0"/>
+          <axis name="ROLL" failsafe_value="0"/>
+          <axis name="PITCH" failsafe_value="0"/>
+        </commands>
+        <rc_commands>
+          <set value="@THROTTLE" command="THROTTLE"/>
+          <set value="@ROLL" command="ROLL"/>
+          <set value="@PITCH" command="PITCH"/>
+        </rc_commands>
+        <section name="MIXER">
+          <define value="0.75" name="AILEVON_AILERON_RATE"/>
+          <define value="0.75" name="AILEVON_ELEVATOR_RATE"/>
+        </section>
+        <command_laws>
+          <let var="aileron" value="@ROLL  * AILEVON_AILERON_RATE"/>
+          <let var="elevator" value="@PITCH * AILEVON_ELEVATOR_RATE"/>
+          <let var="manual" value="(fbw_mode==FBW_MODE_MANUAL)"/>
+          <let var="vfault_left" value="100 * ($manual ? 1 : fault_left)"/>
+          <let var="vfault_right" value="100 * ($manual ? 1 : fault_right)"/>
+          <let var="vfault_offset_left" value="($manual ? 0 : fault_offset_left)"/>
+          <let var="vfault_offset_right" value="($manual ? 0 : fault_offset_right)"/>
+          <set value="@THROTTLE" servo="MOTOR"/>
+          <set value="(($elevator - $aileron) * $vfault_left) / 100 + $vfault_offset_left" servo="AILEVON_LEFT"/>
+          <set value="(($elevator + $aileron) * $vfault_right) / 100 + $vfault_offset_right" servo="AILEVON_RIGHT"/>
+        </command_laws>
+        <section prefix="AUTO1_" name="AUTO1">
+          <define value="0.85" name="MAX_ROLL"/>
+          <define value="0.6" name="MAX_PITCH"/>
+        </section>
+        <section prefix="IMU_" name="IMU">
+          <define value="0" name="MAG_X_NEUTRAL"/>
+          <define value="0" name="MAG_Y_NEUTRAL"/>
+          <define value="0" name="MAG_Z_NEUTRAL"/>
+          <define value="-1" name="GYRO_P_SIGN"/>
+          <define value="-1" name="GYRO_Q_SIGN"/>
+          <define value="-1" name="GYRO_R_SIGN"/>
+          <define value="0" name="GYRO_P_NEUTRAL"/>
+          <define value="0" name="GYRO_Q_NEUTRAL"/>
+          <define value="0" name="GYRO_R_NEUTRAL"/>
+          <define value="-1" name="ACCEL_X_SIGN"/>
+          <define value="-1" name="ACCEL_Y_SIGN"/>
+          <define value="-1" name="ACCEL_Z_SIGN"/>
+          <define value="2" name="ACCEL_X_NEUTRAL"/>
+          <define value="-31" name="ACCEL_Y_NEUTRAL"/>
+          <define value="30" name="ACCEL_Z_NEUTRAL"/>
+          <define value="2.44668108444" name="ACCEL_X_SENS" integer="16"/>
+          <define value="2.43517068566" name="ACCEL_Y_SENS" integer="16"/>
+          <define value="2.45381364992" name="ACCEL_Z_SENS" integer="16"/>
+          <define value="0" name="BODY_TO_IMU_PHI"/>
+          <define value="0" name="BODY_TO_IMU_THETA"/>
+          <define value="0" name="BODY_TO_IMU_PSI"/>
+        </section>
+        <section prefix="INS_" name="INS">
+          <define value="-0.990987803591" unit="deg" name="ROLL_NEUTRAL_DEFAULT"/>
+          <define value="11.1209962246" unit="deg" name="PITCH_NEUTRAL_DEFAULT"/>
+          <define value="0.5141" name="H_X"/>
+          <define value="0.0002" name="H_Y"/>
+          <define value="0.8576" name="H_Z"/>
+        </section>
+        <section name="BAT">
+          <define value="8.6" unit="V" name="CATASTROPHIC_BAT_LEVEL"/>
+          <define value="(_adc-632)*4.14" name="MilliAmpereOfAdc(_adc)"/>
+        </section>
+        <section name="MISC">
+          <define value="12." unit="m/s" name="NOMINAL_AIRSPEED"/>
+          <define value="5." unit="s" name="CARROT"/>
+          <define value="(1.5*MAX_DIST_FROM_HOME)" name="KILL_MODE_DISTANCE"/>
+          <define value="80." name="DEFAULT_CIRCLE_RADIUS"/>
+          <define value="TRUE" name="UNLOCKED_HOME_MODE"/>
+          <define value="8" unit="deg" name="APP_ANGLE"/>
+        </section>
+        <section prefix="V_CTL_" name="VERTICAL CONTROL">
+          <define value="0.12" name="ALTITUDE_PGAIN"/>
+          <define value="4." name="ALTITUDE_MAX_CLIMB"/>
+          <define value="2*V_CTL_ALTITUDE_MAX_CLIMB" name="AUTO_CLIMB_LIMIT"/>
+          <define value="0.40" name="AUTO_THROTTLE_NOMINAL_CRUISE_THROTTLE"/>
+          <define value="0.25" name="AUTO_THROTTLE_MIN_CRUISE_THROTTLE"/>
+          <define value="0.85" name="AUTO_THROTTLE_MAX_CRUISE_THROTTLE"/>
+          <define value="0.088" unit="%/(m/s)" name="AUTO_THROTTLE_CLIMB_THROTTLE_INCREMENT"/>
+          <define value="0.004" name="AUTO_THROTTLE_PGAIN"/>
+          <define value="0.0" name="AUTO_THROTTLE_DGAIN"/>
+          <define value="0." name="AUTO_THROTTLE_IGAIN"/>
+          <define value="0.077" name="AUTO_THROTTLE_PITCH_OF_VZ_PGAIN"/>
+          <define value="0.027" name="AUTO_PITCH_PGAIN"/>
+          <define value="0.01" name="AUTO_PITCH_DGAIN"/>
+          <define value="0.0" name="AUTO_PITCH_IGAIN"/>
+          <define value="20" unit="deg" name="AUTO_PITCH_MAX_PITCH"/>
+          <define value="-20" unit="deg" name="AUTO_PITCH_MIN_PITCH"/>
+          <define value="0.1" name="THROTTLE_SLEW"/>
+        </section>
+        <section prefix="H_CTL_" name="HORIZONTAL CONTROL">
+          <define value="0.743" name="COURSE_PGAIN"/>
+          <define value="30." unit="deg" name="ROLL_MAX_SETPOINT"/>
+          <define value="30." unit="deg" name="PITCH_MAX_SETPOINT"/>
+          <define value="-30." unit="deg" name="PITCH_MIN_SETPOINT"/>
+          <define value="11000." name="ROLL_ATTITUDE_GAIN"/>
+          <define value="1000." name="ROLL_RATE_GAIN"/>
+          <define value="100." name="ROLL_IGAIN"/>
+          <define value="10250" name="PITCH_PGAIN"/>
+          <define value="500." name="PITCH_DGAIN"/>
+          <define value="400" name="PITCH_IGAIN"/>
+          <define value="1." unit="deg" name="PITCH_OF_ROLL"/>
+          <define value="0.0" name="AILERON_OF_THROTTLE"/>
+          <define value="0" name="ELEVATOR_OF_ROLL"/>
+        </section>
+        <section prefix="NAV_CATAPULT_" name="CATAPULT">
+          <define value="0.7" name="ACCELERATION_THRESHOLD"/>
+          <define value="20" unit="deg" name="INITIAL_PITCH"/>
+          <define value="160" name="CLIMB_DISTANCE"/>
+        </section>
+        <section prefix="FAILSAFE_" name="FAILSAFE">
+          <define value="2" unit="s" name="DELAY_WITHOUT_GPS"/>
+          <define value="0.3" unit="%" name="DEFAULT_THROTTLE"/>
+          <define value="0.3" unit="rad" name="DEFAULT_ROLL"/>
+          <define value="0.5" unit="rad" name="DEFAULT_PITCH"/>
+          <define value="100" unit="m" name="HOME_RADIUS"/>
+        </section>
+        <section prefix="NPS_" name="SIMULATOR">
+          <define value="15" name="JSBSIM_LAUNCHSPEED"/>
+          <define value="easystar" type="string" name="JSBSIM_MODEL"/>
+          <define value="nps_sensors_params_default.h" type="string" name="SENSORS_PARAMS"/>
+        </section>
+      </airframe>
+      <telemetry>
+        <process name="Ap">
+          <mode name="default">
+            <message period="11.1" name="AUTOPILOT_VERSION"/>
+            <message period="1" name="AIRSPEED"/>
+            <message period="5.1" name="ALIVE"/>
+            <message period="0.25" name="GPS"/>
+            <message period="1." name="NAVIGATION"/>
+            <message period="0.1" name="ATTITUDE"/>
+            <message period="0.5" name="ESTIMATOR"/>
+            <message period="2.4" name="ENERGY"/>
+            <message period="0.5" name="WP_MOVED"/>
+            <message period="1.05" name="CIRCLE"/>
+            <message period="0.2" name="DESIRED"/>
+            <message period="1.1" name="BAT"/>
+            <message period="1.2" name="SEGMENT"/>
+            <message period="2.1" name="CALIBRATION"/>
+            <message period="9." name="NAVIGATION_REF"/>
+            <message period="4.9" name="PPRZ_MODE"/>
+            <message period="5." name="SETTINGS"/>
+            <message period="2.2" name="STATE_FILTER_STATUS"/>
+            <message period="5.1" name="DATALINK_REPORT"/>
+            <message period="1.5" name="DL_VALUE"/>
+            <message period="1.2" name="IR_SENSORS"/>
+            <message period="2.1" name="SURVEY"/>
+            <message period="2.0" name="GPS_SOL"/>
+            <message period=".8" name="IMU_ACCEL"/>
+            <message period=".6" name="IMU_GYRO"/>
+            <message period="1.3" name="IMU_MAG"/>
+            <message period="0.5" name="CAM"/>
+            <message period="1.0" name="CAM_POINT"/>
+            <message period="5" name="COMMANDS"/>
+            <message period="2" name="FBW_STATUS"/>
+            <message period="1.3" name="AIR_DATA"/>
+            <message period="0.9" name="ESC"/>
+            <message period="5.1" name="LOGGER_STATUS"/>
+          </mode>
+          <mode name="minimal">
+            <message period="5" name="ALIVE"/>
+            <message period="4" name="ATTITUDE"/>
+            <message period="1.05" name="GPS"/>
+            <message period="1.3" name="ESTIMATOR"/>
+            <message period="1.4" name="WP_MOVED"/>
+            <message period="3.05" name="CIRCLE"/>
+            <message period="4.05" name="DESIRED"/>
+            <message period="1.1" name="BAT"/>
+            <message period="3.2" name="SEGMENT"/>
+            <message period="5.1" name="CALIBRATION"/>
+            <message period="9." name="NAVIGATION_REF"/>
+            <message period="3." name="NAVIGATION"/>
+            <message period="5." name="PPRZ_MODE"/>
+            <message period="5." name="STATE_FILTER_STATUS"/>
+            <message period="5.1" name="DATALINK_REPORT"/>
+            <message period="1.5" name="DL_VALUE"/>
+            <message period="5.2" name="IR_SENSORS"/>
+            <message period="2.1" name="SURVEY"/>
+            <message period="5.0" name="GPS_SOL"/>
+          </mode>
+          <mode name="extremal">
+            <message period="5" name="ALIVE"/>
+            <message period="5.1" name="GPS"/>
+            <message period="5.3" name="ESTIMATOR"/>
+            <message period="10.1" name="BAT"/>
+            <message period="10.2" name="DESIRED"/>
+            <message period="5.4" name="NAVIGATION"/>
+            <message period="7.5" name="PPRZ_MODE"/>
+            <message period="8." name="STATE_FILTER_STATUS"/>
+            <message period="5.7" name="DATALINK_REPORT"/>
+          </mode>
+          <mode name="raw_sensors">
+            <message period="0.5" name="DL_VALUE"/>
+            <message period="2.1" name="ALIVE"/>
+            <message period=".05" name="IMU_ACCEL_RAW"/>
+            <message period=".05" name="IMU_GYRO_RAW"/>
+            <message period=".05" name="IMU_MAG_RAW"/>
+            <message period="0.5" name="BARO_RAW"/>
+          </mode>
+          <mode name="scaled_sensors">
+            <message period="0.5" name="DL_VALUE"/>
+            <message period="2.1" name="ALIVE"/>
+            <message period=".075" name="IMU_GYRO"/>
+            <message period=".075" name="IMU_ACCEL"/>
+            <message period=".1" name="IMU_MAG"/>
+          </mode>
+          <mode name="debug_imu">
+            <message period="0.1" name="ATTITUDE"/>
+            <message period="5" name="ALIVE"/>
+            <message period="5.1" name="GPS"/>
+            <message period="5.3" name="ESTIMATOR"/>
+            <message period="10.1" name="BAT"/>
+            <message period="10.2" name="DESIRED"/>
+            <message period="5.4" name="NAVIGATION"/>
+            <message period="5.5" name="PPRZ_MODE"/>
+            <message period="5." name="STATE_FILTER_STATUS"/>
+            <message period="5.7" name="DATALINK_REPORT"/>
+            <message period=".5" name="IMU_ACCEL"/>
+            <message period=".5" name="IMU_GYRO"/>
+            <message period=".5" name="IMU_MAG"/>
+            <message period=".5" name="IMU_ACCEL_RAW"/>
+            <message period=".5" name="IMU_GYRO_RAW"/>
+            <message period=".5" name="IMU_MAG_RAW"/>
+          </mode>
+        </process>
+        <process name="Fbw">
+          <mode name="default">
+            <message period="5" name="COMMANDS"/>
+            <message period="2" name="FBW_STATUS"/>
+            <message period="5" name="ACTUATORS"/>
+          </mode>
+          <mode name="debug">
+            <message period="0.5" name="PPM"/>
+            <message period="0.5" name="RC"/>
+            <message period="0.5" name="COMMANDS"/>
+            <message period="1" name="FBW_STATUS"/>
+            <message period="5" name="ACTUATORS"/>
+          </mode>
+        </process>
+        <process name="FlightRecorder">
+          <mode name="default">
+            <message period="5" name="ALIVE"/>
+            <message period="0.5" name="BAT"/>
+            <message period="0.5" name="ENERGY"/>
+            <message period="0.2" name="GPS"/>
+            <message period="0.05" name="ATTITUDE"/>
+            <message period="0.05" name="DESIRED"/>
+            <message period=".02" name="IMU_ACCEL"/>
+            <message period=".02" name="IMU_GYRO"/>
+            <message period=".02" name="IMU_MAG"/>
+            <message period="0.05" name="AIR_DATA"/>
+            <message period="0.05" name="AOA"/>
+            <message period="0.05" name="RC"/>
+            <message period="0.05" name="COMMANDS"/>
+            <message period="0.05" name="ACTUATORS"/>
+            <message period="1.0" name="PPRZ_MODE"/>
+            <message period="1.0" name="FBW_STATUS"/>
+            <message period="1.0" name="NAVIGATION"/>
+            <message period="1.0" name="DATALINK_REPORT"/>
+            <message period="0.1" name="ESC"/>
+            <message period="0.05" name="ADC_GENERIC"/>
+            <message period="0.1" name="WIND_INFO_RET"/>
+          </mode>
+        </process>
+      </telemetry>
+      <settings>
+        <dl_settings>
+          <dl_settings name="flight params">
+            <dl_setting var="flight_altitude" step="10" shortname="altitude" min="0" max="1000"/>
+            <dl_setting var="nav_course" step="1" min="0" max="360"/>
+            <dl_setting var="nav_shift" step="5" shortname="inc. shift" module="firmwares/fixedwing/nav" min="-10" max="10" handler="IncreaseShift"/>
+            <dl_setting var="autopilot.flight_time" step="1" shortname="flight time" module="autopilot" min="0" max="0" handler="ResetFlightTimeAndLaunch"/>
+            <dl_setting var="nav_radius" step="10" module="firmwares/fixedwing/nav" min="-200" max="200" handler="SetNavRadius">
+              <strip_button value="1" name="Circle right" icon="circle-right.png" group="circle"/>
+              <strip_button value="-1" name="Circle left" icon="circle-left.png" group="circle"/>
+              <key_press value="1" key="greater"/>
+              <key_press value="-1" key="less"/>
+            </dl_setting>
+          </dl_settings>
+          <dl_settings name="mode">
+            <dl_setting var="autopilot.mode" values="MANUAL|AUTO1|AUTO2|HOME|NOGPS|FAILSAFE" step="1" module="autopilot" min="0" max="2"/>
+            <dl_setting var="autopilot.launch" step="1" min="0" max="1"/>
+            <dl_setting var="autopilot.kill_throttle" step="1" min="0" max="1"/>
+          </dl_settings>
+        </dl_settings>
+      </settings>
+      <settings>
+        <dl_settings>
+          <dl_settings name="control">
+            <dl_settings name="trim">
+              <dl_setting var="ap_state->command_roll_trim" step="1" shortname="roll_trim" param="COMMAND_ROLL_TRIM" module="inter_mcu" min="-960" max="960"/>
+              <dl_setting var="ap_state->command_pitch_trim" step="1" shortname="pitch_trim" param="COMMAND_PITCH_TRIM" min="-960" max="960"/>
+              <dl_setting var="ap_state->command_yaw_trim" step="1" shortname="yaw_trim" param="COMMAND_YAW_TRIM" min="-9000" max="9000"/>
+            </dl_settings>
+            <dl_settings name="attitude">
+              <dl_setting var="h_ctl_roll_pgain" step="250" shortname="roll_pgain" module="stabilization/stabilization_attitude" min="000" max="25000"/>
+              <dl_setting var="h_ctl_roll_max_setpoint" unit="rad" step="1." shortname="max_roll" param="H_CTL_ROLL_MAX_SETPOINT" min="0" max="60" alt_unit="deg"/>
+              <dl_setting var="h_ctl_pitch_pgain" step="250" shortname="pitch_pgain" param="H_CTL_PITCH_PGAIN" min="0" max="25000"/>
+              <dl_setting var="h_ctl_pitch_dgain" step="10" shortname="pitch_dgain" param="H_CTL_PITCH_DGAIN" min="0" max="50000"/>
+              <dl_setting var="h_ctl_elevator_of_roll" step="100" shortname="elevator_of_roll" param="H_CTL_ELEVATOR_OF_ROLL" min="0" max="5000"/>
+              <dl_setting var="h_ctl_aileron_of_throttle" step="100" shortname="aileron_of_throttle" min="0" max="5000"/>
+              <dl_setting var="h_ctl_roll_attitude_gain" step="250" shortname="roll attitude pgain" param="H_CTL_ROLL_ATTITUDE_GAIN" min="0" max="15000"/>
+              <dl_setting var="h_ctl_roll_rate_gain" step="250" shortname="roll rate gain" param="H_CTL_ROLL_RATE_GAIN" min="0" max="15000"/>
+            </dl_settings>
+            <dl_settings name="alt">
+              <dl_setting var="v_ctl_altitude_pgain" step="0.01" shortname="alt_pgain" param="V_CTL_ALTITUDE_PGAIN" min="0" max="0.2"/>
+            </dl_settings>
+            <dl_settings name="auto_throttle">
+              <dl_setting var="v_ctl_auto_throttle_cruise_throttle" step="0.05" shortname="cruise throttle" param="V_CTL_AUTO_THROTTLE_NOMINAL_CRUISE_THROTTLE" module="guidance/guidance_v" min="0.0" max="1" handler="SetCruiseThrottle">
+                <strip_button value="0.1" name="Loiter" group="dash_loiter"/>
+                <strip_button value="0" name="Cruise" group="dash_loiter"/>
+                <strip_button value="1" name="Dash" group="dash_loiter"/>
+              </dl_setting>
+              <dl_setting var="v_ctl_pitch_trim" unit="rad" step="0.1" shortname="pitch trim" param="V_CTL_PITCH_TRIM" min="-15" max="15" alt_unit="deg"/>
+              <dl_setting var="v_ctl_auto_throttle_pgain" step="0.005" shortname="throttle_pgain" param="V_CTL_AUTO_THROTTLE_PGAIN" min="0.00" max="0.05"/>
+              <dl_setting var="v_ctl_auto_throttle_igain" step="0.05" shortname="throttle_igain" param="V_CTL_AUTO_THROTTLE_IGAIN" min="0.0" max="1"/>
+              <dl_setting var="v_ctl_auto_throttle_dgain" step="0.1" shortname="throttle_dgain" min="0.0" max="2"/>
+              <dl_setting var="v_ctl_auto_throttle_climb_throttle_increment" step="0.01" shortname="throttle_incr" param="V_CTL_AUTO_THROTTLE_CLIMB_THROTTLE_INCREMENT" min="0" max="1"/>
+              <dl_setting var="v_ctl_auto_throttle_pitch_of_vz_pgain" step="0.01" shortname="pitch_of_vz" param="V_CTL_AUTO_THROTTLE_PITCH_OF_VZ_PGAIN" min="0" max="1"/>
+              <dl_setting var="v_ctl_auto_throttle_pitch_of_vz_dgain" step="0.1" shortname="pitch_of_vz (d)" min="-10" max="10"/>
+            </dl_settings>
+            <dl_settings name="auto_pitch">
+              <dl_setting var="v_ctl_auto_pitch_pgain" step="0.01" shortname="pgain" param="V_CTL_AUTO_PITCH_PGAIN" min="0.01" max="0.1"/>
+              <dl_setting var="v_ctl_auto_pitch_igain" step="0.01" shortname="igain" param="V_CTL_AUTO_PITCH_IGAIN" min="0" max="1"/>
+            </dl_settings>
+            <dl_settings name="nav">
+              <dl_setting var="h_ctl_course_pgain" step="0.05" shortname="course pgain" param="H_CTL_COURSE_PGAIN" min="0.1" max="3"/>
+              <dl_setting var="h_ctl_course_dgain" step="0.1" shortname="course dgain" param="H_CTL_COURSE_DGAIN" min="0" max="2"/>
+              <dl_setting var="h_ctl_course_pre_bank_correction" step="0.05" shortname="pre bank cor" param="H_CTL_COURSE_PRE_BANK_CORRECTION" min="0.1" max="2"/>
+              <dl_setting var="nav_glide_pitch_trim" step="0.05" shortname="glide pitch trim" param="NAV_GLIDE_PITCH_TRIM" min="0.0" max="1"/>
+              <dl_setting var="h_ctl_roll_slew" step="0.01" shortname="roll slew" min="0.02" max="1"/>
+              <dl_setting var="nav_radius" step="5" min="-500" max="500"/>
+              <dl_setting var="nav_course" step="5" min="0" max="359"/>
+              <dl_setting var="nav_mode" step="1" min="1" max="2"/>
+              <dl_setting var="nav_climb" step="0.5" min="-5" max="5"/>
+              <dl_setting var="fp_pitch" step="1" min="-15" max="15"/>
+              <dl_setting var="fp_throttle" step="0.01" min="0.0" max="1.0"/>
+              <dl_setting var="fp_climb" step="0.1" min="-5.0" max="5.0"/>
+              <dl_setting var="nav_shift" step="5" shortname="inc. shift" module="firmwares/fixedwing/nav" min="-50" max="50" handler="IncreaseShift"/>
+              <dl_setting var="nav_ground_speed_setpoint" step="0.5" shortname="ground speed" min="5" max="50"/>
+              <dl_setting var="nav_ground_speed_pgain" step="0.01" shortname="ground speed pgain" min="0" max="0.2"/>
+              <dl_setting var="nav_survey_shift" step="5" min="50" max="500"/>
+            </dl_settings>
+          </dl_settings>
+        </dl_settings>
+      </settings>
+    </aircraft>
+  </conf>
+  <protocol>
+    <msg_class name="telemetry" id="0">
+      <message name="AUTOPILOT_VERSION" id="1">
+        <field type="uint32" name="version">version encoded as: MAJOR * 10000 + MINOR * 100 + PATCH</field>
+        <field type="char[]" name="desc">version description as string from paparazzi_version</field>
+      </message>
+      <message name="ALIVE" id="2">
+        <description>alive/heartbeat message containing the MD5sum of the aircraft configuration</description>
+        <field type="uint8[]" name="md5sum"/>
+      </message>
+      <message name="PONG" id="3">
+        <description>Answer to PING datalink message, to measure latencies</description>
+      </message>
+      <message name="TAKEOFF" id="4">
+        <field unit="s" type="uint16" name="cpu_time"/>
+      </message>
+      <message name="ARDRONE_NAVDATA" id="5">
+        <field type="uint16" name="taille"/>
+        <field type="uint16" name="nu_trame"/>
+        <field type="uint16" name="ax"/>
+        <field type="uint16" name="ay"/>
+        <field type="uint16" name="az"/>
+        <field type="int16" name="vx"/>
+        <field type="int16" name="vy"/>
+        <field type="int16" name="vz"/>
+        <field type="uint16" name="temperature_acc"/>
+        <field type="uint16" name="temperature_gyro"/>
+        <field type="uint16" name="ultrasound"/>
+        <field type="uint16" name="us_debut_echo"/>
+        <field type="uint16" name="us_fin_echo"/>
+        <field type="uint16" name="us_association_echo"/>
+        <field type="uint16" name="us_distance_echo"/>
+        <field type="uint16" name="us_curve_time"/>
+        <field type="uint16" name="us_curve_value"/>
+        <field type="uint16" name="us_curve_ref"/>
+        <field type="uint16" name="nb_echo"/>
+        <field type="uint32" name="sum_echo"/>
+        <field type="int16" name="gradient"/>
+        <field type="uint16" name="flag_echo_ini"/>
+        <field type="int32" name="pressure"/>
+        <field type="uint16" name="temperature_pressure"/>
+        <field type="int16" name="mx"/>
+        <field type="int16" name="my"/>
+        <field type="int16" name="mz"/>
+        <field type="uint16" name="chksum"/>
+        <field type="uint32" name="checksum_errors"/>
+      </message>
+      <message name="ATTITUDE" id="6">
+        <field unit="rad" type="float" name="phi" alt_unit="deg"/>
+        <field unit="rad" type="float" name="psi" alt_unit="deg"/>
+        <field unit="rad" type="float" name="theta" alt_unit="deg"/>
+      </message>
+      <message name="IR_SENSORS" id="7">
+        <field type="int16" name="ir1"/>
+        <field type="int16" name="ir2"/>
+        <field type="int16" name="longitudinal"/>
+        <field type="int16" name="lateral"/>
+        <field type="int16" name="vertical"/>
+      </message>
+      <message name="GPS" id="8">
+        <field unit="byte_mask" type="uint8" name="mode"/>
+        <field unit="cm" type="int32" name="utm_east" alt_unit="m"/>
+        <field unit="cm" type="int32" name="utm_north" alt_unit="m"/>
+        <field unit="decideg" type="int16" name="course" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">Altitude above geoid (MSL)</field>
+        <field unit="cm/s" type="uint16" name="speed" alt_unit="m/s">norm of 2d ground speed in cm/s</field>
+        <field unit="cm/s" type="int16" name="climb" alt_unit="m/s"/>
+        <field unit="weeks" type="uint16" name="week"/>
+        <field unit="ms" type="uint32" name="itow"/>
+        <field type="uint8" name="utm_zone"/>
+        <field type="uint8" name="gps_nb_err"/>
+      </message>
+      <message name="NAVIGATION_REF" id="9">
+        <field unit="m" type="int32" name="utm_east"/>
+        <field unit="m" type="int32" name="utm_north"/>
+        <field type="uint8" name="utm_zone"/>
+        <field unit="m" type="float" name="ground_alt"/>
+      </message>
+      <message name="NAVIGATION" id="10">
+        <field type="uint8" name="cur_block"/>
+        <field type="uint8" name="cur_stage"/>
+        <field unit="m" type="float" name="pos_x" format="%.1f"/>
+        <field unit="m" type="float" name="pos_y" format="%.1f"/>
+        <field unit="m" type="float" name="dist_wp" format="%.1f"/>
+        <field unit="m" type="float" name="dist_home" format="%.1f"/>
+        <field type="uint8" name="circle_count"/>
+        <field type="uint8" name="oval_count"/>
+      </message>
+      <message name="PPRZ_MODE" id="11">
+        <field values="MANUAL|AUTO1|AUTO2|HOME|NOGPS|FAILSAFE" type="uint8" name="ap_mode"/>
+        <field values="MANUAL|AUTO_THROTTLE|AUTO_CLIMB|AUTO_ALT" type="uint8" name="ap_gaz"/>
+        <field values="MANUAL|ROLL_RATE|ROLL|COURSE" type="uint8" name="ap_lateral"/>
+        <field values="WAYPOINT|ROUTE|CIRCLE" type="uint8" name="ap_horizontal"/>
+        <field values="NONE|DOWN|UP" type="uint8" name="if_calib_mode"/>
+        <field values="LOST|OK|REALLY_LOST" type="uint8" name="mcu1_status"/>
+      </message>
+      <message name="BAT" id="12">
+        <field unit="pprz" type="int16" name="throttle"/>
+        <field unit="1e-1V" type="uint16" name="voltage" alt_unit_coef="0.1" alt_unit="V"/>
+        <field unit="1e-2A" type="int16" name="amps" alt_unit_coef="0.01" alt_unit="A"/>
+        <field unit="s" type="uint16" name="flight_time"/>
+        <field unit="bool" type="uint8" name="kill_auto_throttle"/>
+        <field unit="s" type="uint16" name="block_time"/>
+        <field unit="s" type="uint16" name="stage_time"/>
+        <field unit="mAh" type="int16" name="energy"/>
+      </message>
+      <message name="DEBUG_MCU_LINK" id="13">
+        <field type="uint8" name="i2c_nb_err"/>
+        <field type="uint8" name="i2c_mcu1_nb_err"/>
+        <field type="uint8" name="ppm_rate"/>
+      </message>
+      <message name="CALIBRATION" id="14">
+        <field type="float" name="climb_sum_err" format="%.1f"/>
+        <field type="uint8" name="climb_gaz_submode"/>
+      </message>
+      <message name="SETTINGS" id="15">
+        <field type="float" name="slider_1_val"/>
+        <field type="float" name="slider_2_val"/>
+        <field type="float" name="slider_3_val"/>
+        <field type="float" name="slider_4_val"/>
+      </message>
+      <message name="DESIRED" id="16">
+        <field unit="rad" type="float" name="roll" format="%.2f" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="rad" type="float" name="pitch" format="%.2f" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="rad" type="float" name="course" format="%.1f" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="m" type="float" name="x" format="%.0f"/>
+        <field unit="m" type="float" name="y" format="%.0f"/>
+        <field unit="m" type="float" name="altitude" format="%.0f"/>
+        <field unit="m/s" type="float" name="climb" format="%.1f"/>
+        <field unit="m/s" type="float" name="airspeed" format="%.1f"/>
+      </message>
+      <message name="GPS_SOL" id="17">
+        <field unit="cm" type="uint32" name="Pacc"/>
+        <field unit="cm/s" type="uint32" name="Sacc"/>
+        <field type="uint16" name="PDOP"/>
+        <field type="uint8" name="numSV"/>
+      </message>
+      <message name="ADC_GENERIC" id="18">
+        <field type="uint16" name="val1"/>
+        <field type="uint16" name="val2"/>
+      </message>
+      <message name="ECU" id="19">
+        <field unit="bool" type="uint8" name="stg_in"/>
+        <field unit="bool" type="uint8" name="stb_in"/>
+        <field unit="V" type="float" name="ain1"/>
+        <field unit="V" type="float" name="ain2"/>
+        <field unit="V" type="float" name="ain3"/>
+        <field unit="V" type="float" name="ain4"/>
+      </message>
+      <message name="CAM" id="20">
+        <field unit="deg" type="int16" name="phi"/>
+        <field unit="deg" type="int16" name="theta"/>
+        <field unit="m" type="int16" name="target_x"/>
+        <field unit="m" type="int16" name="target_y"/>
+      </message>
+      <message name="CIRCLE" id="21">
+        <field unit="m" type="float" name="center_east"/>
+        <field unit="m" type="float" name="center_north"/>
+        <field unit="m" type="float" name="radius"/>
+      </message>
+      <message name="SEGMENT" id="22">
+        <field unit="m" type="float" name="segment_east_1"/>
+        <field unit="m" type="float" name="segment_north_1"/>
+        <field unit="m" type="float" name="segment_east_2"/>
+        <field unit="m" type="float" name="segment_north_2"/>
+      </message>
+      <message name="VECTORNAV_INFO" id="23">
+        <field unit="s" type="float" name="timestamp"/>
+        <field type="uint32" name="chksm_error"/>
+        <field type="uint32" name="hdr_error"/>
+        <field unit="packets/s" type="uint16" name="rate"/>
+        <field values="NoTracking|OutOfSpecs|OK" type="uint8" name="ins_status"/>
+        <field type="uint8" name="ins_err"/>
+        <field unit="deg" type="float" name="YprU1"/>
+        <field unit="deg" type="float" name="YprU2"/>
+        <field unit="deg" type="float" name="YprU3"/>
+      </message>
+      <message name="HYBRID_GUIDANCE" id="24">
+        <field type="int32" name="pos_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="pos_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="speed_x" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="speed_y" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="wind_x" alt_unit_coef="0.0039063" alt_unit="m/s"/>
+        <field type="int32" name="wind_y" alt_unit_coef="0.0039063" alt_unit="m/s"/>
+        <field type="int32" name="pos_err_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="pos_err_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="speed_sp_x" alt_unit_coef="0.0039063" alt_unit="m/s"/>
+        <field type="int32" name="speed_sp_y" alt_unit_coef="0.0039063" alt_unit="m/s"/>
+        <field type="int32" name="norm_ref_speed" alt_unit_coef="0.0039063" alt_unit="m/s"/>
+        <field type="int32" name="heading_diff"/>
+        <field type="int32" name="phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+      </message>
+      <message name="SVINFO" id="25">
+        <field type="uint8" name="chn"/>
+        <field type="uint8" name="SVID"/>
+        <field type="uint8" name="Flags"/>
+        <field type="uint8" name="QI"/>
+        <field unit="dbHz" type="uint8" name="CNO"/>
+        <field unit="deg" type="int8" name="Elev"/>
+        <field unit="deg" type="int16" name="Azim"/>
+      </message>
+      <message name="DEBUG" id="26">
+        <field type="uint8[]" name="msg"/>
+      </message>
+      <message name="SURVEY" id="27">
+        <field unit="m" type="float" name="east"/>
+        <field unit="m" type="float" name="north"/>
+        <field unit="m" type="float" name="west"/>
+        <field unit="m" type="float" name="south"/>
+      </message>
+      <message name="RSSI" id="28">
+        <field unit="dB" type="uint8" name="rssi"/>
+        <field unit="dB" type="uint8" name="tx_power"/>
+      </message>
+      <message name="RANGEFINDER" id="29">
+        <field unit="cm" type="uint16" name="range"/>
+        <field unit="m/s" type="float" name="z_dot"/>
+        <field unit="m/s" type="float" name="z_dot_sum_err"/>
+        <field unit="m/s" type="float" name="z_dot_setpoint"/>
+        <field unit="m/s" type="float" name="z_sum_err"/>
+        <field unit="m" type="float" name="z_setpoint"/>
+        <field unit="bool" type="uint8" name="flying"/>
+      </message>
+      <message name="DATALINK_REPORT" id="30">
+        <description>Datalink status reported by an aircraft for the ground</description>
+        <field unit="s" type="uint16" name="uplink_lost_time"/>
+        <field type="uint16" name="uplink_nb_msgs"/>
+        <field type="uint16" name="downlink_nb_msgs"/>
+        <field unit="bytes/s" type="uint16" name="downlink_rate"/>
+        <field unit="msgs/s" type="uint16" name="uplink_rate"/>
+        <field type="uint8" name="downlink_ovrn"/>
+      </message>
+      <message name="DL_VALUE" id="31">
+        <field type="uint8" name="index"/>
+        <field type="float" name="value"/>
+      </message>
+      <message name="MARK" id="32">
+        <field type="uint8" name="ac_id"/>
+        <field unit="deg" type="float" name="lat"/>
+        <field unit="deg" type="float" name="long"/>
+      </message>
+      <message name="SYS_MON" id="33">
+        <field unit="usec" type="uint16" name="periodic_time" alt_unit_coef="0.001" alt_unit="msec"/>
+        <field unit="usec" type="uint16" name="periodic_time_min" alt_unit_coef="0.001" alt_unit="msec"/>
+        <field unit="usec" type="uint16" name="periodic_time_max" alt_unit_coef="0.001" alt_unit="msec"/>
+        <field unit="usec" type="uint16" name="periodic_cycle" alt_unit_coef="0.001" alt_unit="msec"/>
+        <field unit="usec" type="uint16" name="periodic_cycle_min" alt_unit_coef="0.001" alt_unit="msec"/>
+        <field unit="usec" type="uint16" name="periodic_cycle_max" alt_unit_coef="0.001" alt_unit="msec"/>
+        <field type="uint16" name="event_number"/>
+        <field unit="%" type="uint8" name="cpu_load"/>
+        <field unit="s" type="float" name="cpu_time"/>
+      </message>
+      <message name="MOTOR" id="34">
+        <field unit="Hz" type="uint16" name="rpm"/>
+        <field unit="mA" type="int32" name="current"/>
+      </message>
+      <message name="WP_MOVED" id="35">
+        <description>      Waypoint with id wp_id has been updated/moved to the specified UTM coordinates.</description>
+        <field type="uint8" name="wp_id"/>
+        <field unit="m" type="float" name="utm_east"/>
+        <field unit="m" type="float" name="utm_north"/>
+        <field unit="m" type="float" name="alt">Height above Mean Sea Level (geoid)</field>
+        <field type="uint8" name="utm_zone"/>
+      </message>
+      <message name="MKK" id="36">
+        <field type="uint8" name="nr"/>
+        <field unit="Poles/s" type="uint8" name="rpm"/>
+        <field unit="mA" type="uint8" name="current"/>
+        <field unit="deg" type="int8" name="temp"/>
+      </message>
+      <message name="ENERGY" id="37">
+        <field unit="V" type="float" name="bat"/>
+        <field unit="A" type="float" name="amp"/>
+        <field unit="mAh" type="uint16" name="energy"/>
+        <field unit="W" type="float" name="power"/>
+      </message>
+      <message name="ALT_KALMAN" id="41">
+        <field type="float" name="p00"/>
+        <field type="float" name="p01"/>
+        <field type="float" name="p10"/>
+        <field type="float" name="p11"/>
+      </message>
+      <message name="ESTIMATOR" id="42">
+        <field unit="m" type="float" name="z"/>
+        <field unit="m/s" type="float" name="z_dot"/>
+      </message>
+      <message name="TUNE_ROLL" id="43">
+        <field type="float" name="p"/>
+        <field type="float" name="phi"/>
+        <field type="float" name="phi_sp"/>
+      </message>
+      <message name="BARO_MS5534A" id="44">
+        <field unit="P" type="uint32" name="pressure"/>
+        <field unit="dC" type="uint16" name="temp"/>
+        <field unit="m" type="float" name="alt"/>
+      </message>
+      <message name="BARO_WORDS" id="46">
+        <field type="uint16" name="w1"/>
+        <field type="uint16" name="w2"/>
+        <field type="uint16" name="w3"/>
+        <field type="uint16" name="w4"/>
+      </message>
+      <message name="WP_MOVED_LLA" id="47">
+        <field type="uint8" name="wp_id"/>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">Height above Mean Sea Level (geoid)</field>
+      </message>
+      <message name="WP_MOVED_ENU" id="49">
+        <field type="uint8" name="wp_id"/>
+        <field unit="2^8m" type="int32" name="east" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field unit="2^8m" type="int32" name="north" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field unit="2^8m" type="int32" name="up" alt_unit_coef="0.0039063" alt_unit="m"/>
+      </message>
+      <message name="WINDTURBINE_STATUS_" id="50">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="tb_id"/>
+        <field unit="ms" type="uint32" name="sync_itow"/>
+        <field unit="ms" type="uint32" name="cycle_time"/>
+      </message>
+      <message name="RC_3CH_" id="51">
+        <field unit="byte_mask" type="uint8" name="throttle_mode"/>
+        <field type="int8" name="roll"/>
+        <field type="int8" name="pitch"/>
+      </message>
+      <message name="MPPT" id="52">
+        <field type="int16[]" name="values" alt_unit_coef="1e-3"/>
+      </message>
+      <message name="DEBUG_IR_I2C" id="53">
+        <field unit="adc" type="int16" name="ir1"/>
+        <field unit="adc" type="int16" name="ir2"/>
+        <field unit="adc" type="int16" name="top"/>
+      </message>
+      <message name="AIRSPEED" id="54">
+        <field unit="m/s" type="float" name="airspeed"/>
+        <field unit="m/s" type="float" name="airspeed_sp"/>
+        <field unit="m/s" type="float" name="airspeed_cnt"/>
+        <field unit="m/s" type="float" name="groundspeed_sp"/>
+      </message>
+      <message name="BARO_ETS" id="56">
+        <field type="uint16" name="adc"/>
+        <field type="uint16" name="offset"/>
+        <field type="float" name="scaled"/>
+      </message>
+      <message name="AIRSPEED_ETS" id="57">
+        <field type="uint16" name="adc"/>
+        <field type="uint16" name="offset"/>
+        <field type="float" name="scaled"/>
+      </message>
+      <message name="GPS_LLA" id="59">
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">altitude above WGS84 reference ellipsoid</field>
+        <field unit="mm" type="int32" name="hmsl" alt_unit="m">Height above Mean Sea Level (geoid)</field>
+        <field unit="decideg" type="int16" name="course" alt_unit="deg"/>
+        <field unit="cm/s" type="uint16" name="speed" alt_unit="m/s"/>
+        <field unit="cm/s" type="int16" name="climb" alt_unit="m/s"/>
+        <field unit="weeks" type="uint16" name="week"/>
+        <field unit="ms" type="uint32" name="itow"/>
+        <field unit="byte_mask" type="uint8" name="mode"/>
+        <field type="uint8" name="gps_nb_err"/>
+      </message>
+      <message name="H_CTL_A" id="60">
+        <field type="float" name="roll_sum_err"/>
+        <field unit="rad" type="float" name="roll_sp" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="rad" type="float" name="roll_ref" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="rad" type="float" name="phi" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="pprz" type="int16" name="aileron_sp"/>
+        <field type="float" name="pitch_sum_err"/>
+        <field unit="rad" type="float" name="pitch_sp" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="rad" type="float" name="pitch_ref" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="rad" type="float" name="theta" alt_unit_coef="57.3" alt_unit="deg"/>
+        <field unit="pprz" type="int16" name="elevator_sp"/>
+      </message>
+      <message name="TURB_PRESSURE_VOLTAGE" id="62">
+        <field type="float" name="ch_1_p"/>
+        <field type="float" name="ch_1_t"/>
+        <field type="float" name="ch_2_p"/>
+        <field type="float" name="ch_2_t"/>
+        <field type="float" name="ch_3_p"/>
+        <field type="float" name="ch_3_t"/>
+        <field type="float" name="ch_4_p"/>
+        <field type="float" name="ch_4_t"/>
+        <field type="float" name="ch_5_p"/>
+        <field type="float" name="ch_5_t"/>
+        <field type="float" name="ch_6_p"/>
+        <field type="float" name="ch_6_t"/>
+        <field type="float" name="ch_7_p"/>
+        <field type="float" name="ch_7_t"/>
+        <field type="float" name="gnd1"/>
+        <field type="float" name="gnd2"/>
+      </message>
+      <message name="CAM_POINT" id="63">
+        <field unit="m" type="uint16" name="cam_point_distance_from_home"/>
+        <field unit="deg" type="float" name="cam_point_lat"/>
+        <field unit="deg" type="float" name="cam_point_lon"/>
+      </message>
+      <message name="DC_INFO" id="64">
+        <field unit="" type="int16" name="mode"/>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">altitude above WGS84 reference ellipsoid</field>
+        <field unit="deg" type="float" name="course"/>
+        <field type="uint16" name="photo_nr"/>
+        <field unit="m" type="float" name="dist"/>
+        <field unit="m" type="float" name="next_dist"/>
+        <field unit="m" type="float" name="start_x"/>
+        <field unit="m" type="float" name="start_y"/>
+        <field unit="deg" type="float" name="start_angle"/>
+        <field unit="deg" type="float" name="angle"/>
+        <field type="float" name="last_block"/>
+        <field unit="" type="uint16" name="count"/>
+        <field unit="decisec" type="uint8" name="shutter" alt_unit_coef="0.1" alt_unit="sec"/>
+      </message>
+      <message name="AMSYS_BARO" id="65">
+        <field type="uint16" name="pBaroRaw"/>
+        <field unit="Pa" type="float" name="pBaro"/>
+        <field unit="Pa" type="float" name="pHomePressure"/>
+        <field unit="m" type="float" name="AltOffset"/>
+        <field unit="m" type="float" name="aktuell"/>
+        <field unit="m" type="float" name="Over_Ground"/>
+        <field unit="°C" type="float" name="tempBaro"/>
+      </message>
+      <message name="AMSYS_AIRSPEED" id="66">
+        <field type="uint16" name="asRaw"/>
+        <field unit="Pa" type="float" name="asPresure"/>
+        <field unit="m/s" type="float" name="asAirspeed"/>
+        <field unit="m/s" type="float" name="asAirsFilt"/>
+        <field unit="°C" type="float" name="asTemp"/>
+      </message>
+      <message name="FLIGHT_BENCHMARK" id="67">
+        <field type="float" name="SE_As"/>
+        <field type="float" name="SE_Alt"/>
+        <field type="float" name="SE_Pos"/>
+        <field type="float" name="Err_As"/>
+        <field type="float" name="Err_Alt"/>
+        <field type="float" name="Err_Pos"/>
+      </message>
+      <message name="MPL3115_BARO" id="68">
+        <field type="uint32" name="pressure" alt_unit_coef="0.25" alt_unit="Pa"/>
+        <field type="int16" name="temp" alt_unit_coef="0.0625" alt_unit="degC"/>
+        <field unit="m" type="float" name="alt"/>
+      </message>
+      <message name="AOA" id="69">
+        <field type="uint32" name="raw"/>
+        <field unit="rad" type="float" name="angle" alt_unit="deg"/>
+      </message>
+      <message name="XTEND_RSSI" id="70">
+        <field unit="s" type="uint16" name="datalink_time"/>
+        <field unit="dB" type="uint8" name="rssi_fade_margin"/>
+        <field unit="%" type="uint8" name="duty"/>
+      </message>
+      <message name="GVF" id="71">
+        <description>      Information about the trajectory followed by the Guidance Vector Field algorithm.</description>
+        <field type="float" name="error">Error index e, i.e. &apos;distance&apos; to the trajectory</field>
+        <field type="uint8" name="traj">Kind of trajectory</field>
+        <field values="1|-1" type="int8" name="s">Direction to be followed</field>
+        <field type="float" name="ke">Gain for the vector field convergence</field>
+        <field type="float[]" name="p">Parameters describing the trajectory</field>
+      </message>
+      <message name="SUPERBITRF" id="72">
+        <field values="UNINIT|INIT_BINDING|INIT_TRANSFER|BINDING|SYNCING_A|SYNCING_B|TRANSFER" type="uint8" name="status"/>
+        <field values="UNINIT|IDLE|GET_MFG_ID|MULTIWRITE|DATA_CODE|CHAN_SOP_DATA_CRC|RX_IRQ_STATUS_PACKET|SEND" type="uint8" name="cyrf_status"/>
+        <field type="uint32" name="irq_count"/>
+        <field type="uint32" name="rx_packet_count"/>
+        <field type="uint32" name="tx_packet_count"/>
+        <field type="uint32" name="transfer_timeouts"/>
+        <field type="uint32" name="resync_count"/>
+        <field type="uint32" name="uplink_count"/>
+        <field type="uint32" name="rc_count"/>
+        <field type="uint32" name="timing1"/>
+        <field type="uint32" name="timing2"/>
+        <field type="uint32" name="bind_mfg_id"/>
+        <field type="uint8[]" name="mfg_id"/>
+      </message>
+      <message name="GX3_INFO" id="73">
+        <field unit="hz" type="float" name="GX3_freq"/>
+        <field type="uint32" name="chksm_error"/>
+        <field type="uint32" name="hdr_error"/>
+        <field type="uint16" name="GX3_chksm"/>
+      </message>
+      <message name="INV_FILTER" id="78">
+        <field type="float" name="quat"/>
+        <field unit="rad" type="float" name="phi_inv" alt_unit="deg"/>
+        <field unit="rad" type="float" name="theta_inv" alt_unit="deg"/>
+        <field unit="rad" type="float" name="psi_inv" alt_unit="deg"/>
+        <field unit="m/s" type="float" name="Vx_inv"/>
+        <field unit="m/s" type="float" name="Vy_inv"/>
+        <field unit="m/s" type="float" name="Vz_inv"/>
+        <field unit="m" type="float" name="Px_inv"/>
+        <field unit="m" type="float" name="Py_inv"/>
+        <field unit="m" type="float" name="Pz_inv"/>
+        <field unit="rad/s" type="float" name="bias_phi" alt_unit="deg/s"/>
+        <field unit="rad/s" type="float" name="bias_theta" alt_unit="deg/s"/>
+        <field unit="rad/s" type="float" name="bias_psi" alt_unit="deg/s"/>
+        <field type="float" name="bias_as"/>
+        <field type="float" name="bias_hb"/>
+        <field unit="m" type="float" name="meas_baro"/>
+        <field unit="m" type="float" name="meas_gps"/>
+      </message>
+      <message name="MISSION_STATUS" id="79">
+        <field type="float" name="remaining_time"/>
+        <field type="uint8[]" name="index_list"/>
+      </message>
+      <message name="GENERIC_COM" id="81">
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="m" type="int16" name="alt"/>
+        <field unit="cm/s" type="uint16" name="gspeed" alt_unit="m/s"/>
+        <field unit="decideg" type="int16" name="course" alt_unit="deg"/>
+        <field unit="cm/s" type="uint16" name="airspeed" alt_unit="m/s"/>
+        <field unit="decivolt" type="uint8" name="vsupply"/>
+        <field unit="deciAh" type="uint8" name="energy"/>
+        <field unit="%" type="uint8" name="throttle"/>
+        <field type="uint8" name="ap_mode"/>
+        <field type="uint8" name="nav_block"/>
+        <field unit="s" type="uint16" name="flight_time"/>
+      </message>
+      <message name="FORMATION_SLOT_TM" id="82">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="mode"/>
+        <field unit="m" type="float" name="slot_east" format="%.1f"/>
+        <field unit="m" type="float" name="slot_north" format="%.1f"/>
+        <field unit="m" type="float" name="slot_alt" format="%.1f"/>
+      </message>
+      <message name="FORMATION_STATUS_TM" id="83">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="leader_id"/>
+        <field type="uint8" name="status"/>
+      </message>
+      <message name="BMP_STATUS" id="84">
+        <field type="int32" name="UP"/>
+        <field type="int32" name="UT"/>
+        <field unit="Pa" type="int32" name="press"/>
+        <field unit="10x_deg_celsius" type="int32" name="temp"/>
+      </message>
+      <message name="MLX_STATUS" id="85">
+        <field type="uint16" name="itemp_case"/>
+        <field unit="deg_celsius" type="float" name="temp_case" format="%.2f"/>
+        <field type="uint16" name="itemp_obj"/>
+        <field unit="deg_celsius" type="float" name="temp_obj" format="%.2f"/>
+      </message>
+      <message name="TMP_STATUS" id="86">
+        <field type="uint16" name="itemp"/>
+        <field unit="deg_celsius" type="float" name="temp" format="%.2f"/>
+      </message>
+      <message name="WIND_INFO_RET" id="87">
+        <description>      Wind information returned to the ground station.
+      The wind is reported as a vector, it gives the direction the wind is blowing to.
+      This can be used to acknowledge data comming from the ground wind estimator
+      or from an embedded algorithm.
+      Flags field definition:
+      - bit 0: horizontal wind is valid (east and north fields)
+      - bit 1: vertical wind is valid (up field)
+      - bit 2: airspeed is valid</description>
+        <field type="uint8" name="flags">bit 0: horizontal wind, bit 1: vertical wind: bit 2: airspeed</field>
+        <field unit="m/s" type="float" name="east">east component of the wind</field>
+        <field unit="m/s" type="float" name="north">north component of the wind</field>
+        <field unit="m/s" type="float" name="up">vertical component of the wind</field>
+        <field unit="m/s" type="float" name="airspeed">local airspeed norm</field>
+      </message>
+      <message name="SCP_STATUS" id="88">
+        <field unit="Pa" type="uint32" name="press"/>
+        <field unit="100x_deg_celsius" type="int16" name="temp"/>
+      </message>
+      <message name="SHT_STATUS" id="89">
+        <field type="uint16" name="ihumid"/>
+        <field type="uint16" name="itemp"/>
+        <field unit="rel_hum" type="float" name="humid" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="temp" format="%.2f"/>
+      </message>
+      <message name="ENOSE_STATUS" id="90">
+        <field type="uint16" name="val1"/>
+        <field type="uint16" name="val2"/>
+        <field type="uint16" name="val3"/>
+        <field type="uint16" name="PID"/>
+        <field type="uint8[]" name="heat"/>
+      </message>
+      <message name="DPICCO_STATUS" id="91">
+        <field type="uint16" name="humid"/>
+        <field type="uint16" name="temp"/>
+        <field unit="rel_hum" type="float" name="fhumid" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="ftemp" format="%.2f"/>
+      </message>
+      <message name="LOGGER_STATUS" id="92">
+        <description>        Logger status and error id (dependent of the logging system)</description>
+        <field values="STOPPED|RUNNING|ERROR" type="uint8" name="status">General status of the logger</field>
+        <field type="uint8" name="errno">Error number, depend of the logging system, provides detailed information</field>
+        <field unit="bytes" type="uint32" name="used">Accumulated number of bytes written by the logger</field>
+      </message>
+      <message name="MOTOR_BENCH_STATUS" id="94">
+        <field type="uint32" name="time_ticks"/>
+        <field type="float" name="throttle" format="%.3f"/>
+        <field type="float" name="rpm"/>
+        <field type="float" name="current"/>
+        <field type="float" name="thrust"/>
+        <field type="float" name="torque"/>
+        <field type="uint16" name="time_s"/>
+        <field type="uint8" name="mode"/>
+      </message>
+      <message name="HIH_STATUS" id="96">
+        <field type="uint16" name="humid"/>
+        <field unit="rel_hum" type="float" name="fhumid" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="ftemp" format="%.2f"/>
+      </message>
+      <message name="TEMT_STATUS" id="97">
+        <field type="uint16" name="light"/>
+        <field unit="percent" type="float" name="f_light" format="%.2f"/>
+      </message>
+      <message name="GP2Y_STATUS" id="98">
+        <field type="uint16" name="idensity"/>
+        <field unit="mg/m3" type="float" name="density" format="%.2f"/>
+      </message>
+      <message name="SHT_I2C_SERIAL" id="99">
+        <field type="uint32" name="serial0"/>
+        <field type="uint32" name="serial1"/>
+      </message>
+      <message name="PPM" id="100">
+        <field type="uint8" name="ppm_rate"/>
+        <field unit="usec" type="uint16[]" name="values"/>
+      </message>
+      <message name="RC" id="101">
+        <field unit="pprz" type="int16[]" name="values" format="%d"/>
+      </message>
+      <message name="COMMANDS" id="102">
+        <field unit="ticks" type="int16[]" name="values"/>
+      </message>
+      <message name="FBW_STATUS" id="103">
+        <field values="OK|LOST|REALLY_LOST" type="uint8" name="rc_status"/>
+        <field unit="Hz" type="uint8" name="frame_rate"/>
+        <field values="MANUAL|AUTO|FAILSAFE" type="uint8" name="mode"/>
+        <field unit="decivolt" type="uint16" name="vsupply"/>
+        <field unit="mA" type="int32" name="current"/>
+      </message>
+      <message name="ADC" id="104">
+        <field values="FBW|AP" type="uint8" name="mcu"/>
+        <field unit="none" type="uint16[]" name="values"/>
+      </message>
+      <message name="ACTUATORS" id="105">
+        <field unit="none" type="int16[]" name="values"/>
+      </message>
+      <message name="BLUEGIGA" id="106">
+        <field unit="bytes/s" type="uint32" name="data_rate"/>
+        <field type="uint32" name="A2A_msg_rate"/>
+      </message>
+      <message name="THROTTLE_CURVE" id="107">
+        <field type="uint8" name="curve"/>
+        <field type="uint16" name="throttle"/>
+        <field type="int16" name="collective"/>
+        <field type="uint16" name="rpm_sp"/>
+        <field type="uint16" name="rpm_meas"/>
+        <field type="float" name="rpm_err_sum"/>
+      </message>
+      <message name="PIKSI_HEARTBEAT" id="108">
+        <field type="uint32" name="heartbeat"/>
+      </message>
+      <message name="MULTIGAZE_METERS" id="109">
+        <field type="float[]" name="multigaze_meters"/>
+      </message>
+      <message name="DC_SHOT" id="110">
+        <field type="int16" name="photo_nr"/>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg">Gedetic latitude</field>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg">Longitude</field>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">altitude above WGS84 reference ellipsoid</field>
+        <field unit="mm" type="int32" name="hmsl" alt_unit="m">Height above Mean Sea Level (geoid)</field>
+        <field unit="decideg" type="int16" name="phi">Euler angle around x-axis (roll)</field>
+        <field unit="decideg" type="int16" name="theta">Euler angle around y-axis (pitch)</field>
+        <field unit="decideg" type="int16" name="psi">Euler angle around z-axis (yaw)</field>
+        <field unit="decideg" type="int16" name="course">Course over ground (CW/north)</field>
+        <field unit="cm/s" type="uint16" name="speed">horizontal ground speed</field>
+        <field unit="ms" type="uint32" name="itow">GPS time of week</field>
+      </message>
+      <message name="CAMERA_PAYLOAD" id="111">
+        <field unit="s" type="float" name="timestamp">Payload computer seconds since startup</field>
+        <field unit="%" type="uint8" name="used_memory">Percentage of used memory (RAM) of the payload computer rounded up to whole percent</field>
+        <field unit="%" type="uint8" name="used_disk">Percentage of used disk of the payload computer rounded up to whole percent</field>
+        <field values="UNKNOWN|CLOSE|OPEN" type="uint8" name="door_status">Payload door open/close</field>
+        <field values="NONE|CAMERA_ERR|DOOR_ERR" type="uint8" name="error_code">Error codes of the payload</field>
+      </message>
+      <message name="MOTOR_MIXING" id="112">
+        <field unit="none" type="int16[]" name="values"/>
+      </message>
+      <message name="MLX_SERIAL" id="113">
+        <field type="uint32" name="serial0"/>
+        <field type="uint32" name="serial1"/>
+      </message>
+      <message name="PAYLOAD" id="114">
+        <field unit="none" type="uint8[]" name="values"/>
+      </message>
+      <message name="HTM_STATUS" id="115">
+        <field type="uint16" name="ihumid"/>
+        <field type="uint16" name="itemp"/>
+        <field unit="rel_hum" type="float" name="humid" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="temp" format="%.2f"/>
+      </message>
+      <message name="BARO_MS5611" id="116">
+        <field type="uint32" name="d1"/>
+        <field type="uint32" name="d2"/>
+        <field unit="hPa" type="float" name="pressure" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="temp" format="%.2f"/>
+      </message>
+      <message name="MS5611_COEFF" id="117">
+        <field type="uint16" name="c0"/>
+        <field type="uint16" name="c1"/>
+        <field type="uint16" name="c2"/>
+        <field type="uint16" name="c3"/>
+        <field type="uint16" name="c4"/>
+        <field type="uint16" name="c5"/>
+        <field type="uint16" name="c6"/>
+        <field type="uint16" name="c7"/>
+      </message>
+      <message name="ATMOSPHERE_CHARGE" id="118">
+        <field type="uint16" name="t0"/>
+        <field type="uint16" name="t1"/>
+        <field type="uint16" name="t2"/>
+        <field type="uint16" name="t3"/>
+        <field type="uint16" name="t4"/>
+        <field type="uint16" name="t5"/>
+        <field type="uint16" name="t6"/>
+        <field type="uint16" name="t7"/>
+        <field type="uint16" name="t8"/>
+        <field type="uint16" name="t9"/>
+      </message>
+      <message name="SOLAR_RADIATION" id="119">
+        <field type="uint16" name="up_t0"/>
+        <field type="uint16" name="dn_t0"/>
+        <field type="uint16" name="up_t1"/>
+        <field type="uint16" name="dn_t1"/>
+        <field type="uint16" name="up_t2"/>
+        <field type="uint16" name="dn_t2"/>
+        <field type="uint16" name="up_t3"/>
+        <field type="uint16" name="dn_t3"/>
+        <field type="uint16" name="up_t4"/>
+        <field type="uint16" name="dn_t4"/>
+        <field type="uint16" name="up_t5"/>
+        <field type="uint16" name="dn_t5"/>
+        <field type="uint16" name="up_t6"/>
+        <field type="uint16" name="dn_t6"/>
+        <field type="uint16" name="up_t7"/>
+        <field type="uint16" name="dn_t7"/>
+        <field type="uint16" name="up_t8"/>
+        <field type="uint16" name="dn_t8"/>
+        <field type="uint16" name="up_t9"/>
+        <field type="uint16" name="dn_t9"/>
+      </message>
+      <message name="TCAS_TA" id="120">
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="TCAS_RA" id="121">
+        <field type="uint8" name="ac_id"/>
+        <field values="NONE|LEVEL|CLIMB|DESCEND" type="uint8" name="resolve"/>
+      </message>
+      <message name="TCAS_RESOLVED" id="122">
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="TCAS_DEBUG" id="123">
+        <field type="uint8" name="ac_id"/>
+        <field type="float" name="tau"/>
+      </message>
+      <message name="POTENTIAL" id="124">
+        <field type="float" name="east"/>
+        <field type="float" name="north"/>
+        <field type="float" name="alt"/>
+        <field type="float" name="speed"/>
+        <field type="float" name="climb"/>
+      </message>
+      <message name="COPILOT_STATUS" id="125">
+        <field unit="s" type="float" name="timestamp">Mission computer seconds since startup</field>
+        <field unit="%" type="uint8" name="used_memory">Percentage of used memory (RAM) of the mission computer rounded up to whole percent</field>
+        <field unit="%" type="uint8" name="used_disk">Percentage of used disk of the mission computer rounded up to whole percent</field>
+        <field values="UNKNOWN|INIT|LOGGING|FAULT" type="uint8" name="status">Mission computer status</field>
+        <field values="NONE|IO_ERROR" type="uint8" name="error_code">Error codes of the mission computer</field>
+      </message>
+      <message name="TEMP_TCOUPLE" id="126">
+        <field type="float" name="fval0"/>
+        <field type="float" name="fval1"/>
+        <field type="float" name="fval2"/>
+        <field type="float" name="fval3"/>
+        <field type="float" name="fref0"/>
+        <field type="float" name="fref1"/>
+        <field type="float" name="fref2"/>
+        <field type="float" name="fref3"/>
+        <field type="uint16" name="val0"/>
+        <field type="uint16" name="val1"/>
+        <field type="uint16" name="val2"/>
+        <field type="uint16" name="val3"/>
+        <field type="uint16" name="ref0"/>
+        <field type="uint16" name="ref1"/>
+        <field type="uint16" name="ref2"/>
+        <field type="uint16" name="ref3"/>
+      </message>
+      <message name="SHT_I2C_STATUS" id="127">
+        <field type="uint16" name="ihumid"/>
+        <field type="uint16" name="itemp"/>
+        <field unit="rel_hum" type="float" name="humid" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="temp" format="%.2f"/>
+      </message>
+      <message name="CAMERA_SNAPSHOT" id="128">
+        <field type="uint16" name="camera_id">Unique camera ID - consists of make,model and camera index</field>
+        <field values="UNKNOWN|OK|ERROR" type="uint8" name="camera_state">State of the given camera</field>
+        <field type="uint16" name="snapshot_image_number">Snapshot number in sequence</field>
+        <field unit="bool" type="uint8" name="snapshot_valid">Flag checking whether the last snapshot was valid</field>
+        <field unit="deg_celsius" type="float" name="lens_temp" format="%.2f">Lens temperature, NaN if not measured</field>
+        <field unit="deg_celsius" type="float" name="array_temp" format="%.2f">Imager sensor temperature, NaN if not measured</field>
+      </message>
+      <message name="TIMESTAMP" id="129">
+        <field type="uint32" name="timestamp"/>
+      </message>
+      <message name="STAB_ATTITUDE_FLOAT" id="130">
+        <field type="float" name="est_p" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field type="float" name="est_q" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field type="float" name="est_r" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field type="float" name="est_phi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="est_theta" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="est_psi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="ref_phi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="ref_theta" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="ref_psi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="sum_err_phi"/>
+        <field type="float" name="sum_err_theta"/>
+        <field type="float" name="sum_err_psi"/>
+        <field type="float" name="delta_a_fb" alt_unit_coef="0.0000153" alt_unit="motor"/>
+        <field type="float" name="delta_e_fb" alt_unit_coef="0.0000153" alt_unit="motor"/>
+        <field type="float" name="delta_r_fb" alt_unit_coef="0.0000153" alt_unit="motor"/>
+        <field type="float" name="delta_a_ff" alt_unit_coef="0.0000153" alt_unit="motor"/>
+        <field type="float" name="delta_e_ff" alt_unit_coef="0.0000153" alt_unit="motor"/>
+        <field type="float" name="delta_r_ff" alt_unit_coef="0.0000153" alt_unit="motor"/>
+        <field type="int32" name="delta_a"/>
+        <field type="int32" name="delta_e"/>
+        <field type="int32" name="delta_r"/>
+        <field type="float" name="est_p_d" alt_unit_coef="57.29578" alt_unit="deg/s^2"/>
+        <field type="float" name="est_q_d" alt_unit_coef="57.29578" alt_unit="deg/s^2"/>
+        <field type="float" name="est_r_d" alt_unit_coef="57.29578" alt_unit="deg/s^2"/>
+      </message>
+      <message name="IMU_GYRO_SCALED" id="131">
+        <field type="int32" name="gp" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="gq" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="gr" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+      </message>
+      <message name="IMU_ACCEL_SCALED" id="132">
+        <field type="int32" name="ax" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+        <field type="int32" name="ay" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+        <field type="int32" name="az" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+      </message>
+      <message name="IMU_MAG_SCALED" id="133">
+        <field type="int32" name="mx" alt_unit_coef="0.0004883" alt_unit="1"/>
+        <field type="int32" name="my" alt_unit_coef="0.0004883" alt_unit="1"/>
+        <field type="int32" name="mz" alt_unit_coef="0.0004883" alt_unit="1"/>
+      </message>
+      <message name="FILTER" id="134">
+        <field type="int32" name="phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="measure_phi" alt_unit_coef="0.0000273" alt_unit="deg"/>
+        <field type="int32" name="measure_theta" alt_unit_coef="0.0000273" alt_unit="deg"/>
+        <field type="int32" name="measure_psi" alt_unit_coef="0.0000273" alt_unit="deg"/>
+        <field type="int32" name="corrected_phi" alt_unit_coef="0.0000273" alt_unit="deg"/>
+        <field type="int32" name="corrected_theta" alt_unit_coef="0.0000273" alt_unit="deg"/>
+        <field type="int32" name="corrected_psi" alt_unit_coef="0.0000273" alt_unit="deg"/>
+        <field type="int32" name="correction_phi"/>
+        <field type="int32" name="correction_theta"/>
+        <field type="int32" name="correction_psi"/>
+        <field type="int32" name="bp"/>
+        <field type="int32" name="bq"/>
+        <field type="int32" name="br"/>
+        <field values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN" type="uint8" name="comp_id"/>
+      </message>
+      <message name="RATE_LOOP" id="136">
+        <description>Rotorcraft rate control loop.</description>
+        <field unit="rad/s" type="float" name="sp_p" alt_unit="deg/s">rate setpoint</field>
+        <field unit="rad/s" type="float" name="sp_q" alt_unit="deg/s">rate setpoint</field>
+        <field unit="rad/s" type="float" name="sp_r" alt_unit="deg/s">rate setpoint</field>
+        <field type="float" name="sumerr_p">integrated quaternion error</field>
+        <field type="float" name="sumerr_q">integrated quaternion error</field>
+        <field type="float" name="sumerr_r">integrated quaternion error</field>
+        <field type="float" name="fb_p">feedback command on pitch (pprz scale)</field>
+        <field type="float" name="fb_q">feedback command on roll  (pprz scale)</field>
+        <field type="float" name="fb_r">feedback command on yaw   (pprz scale)</field>
+        <field type="int32" name="delta_t">thrust command</field>
+      </message>
+      <message name="FILTER_ALIGNER" id="137">
+        <field type="int32" name="lp_gp" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="lp_gq" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="lp_gr" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="gp" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="gq" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="gr" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="noise"/>
+        <field type="int32" name="cnt"/>
+        <field values="UNINIT|RUNNING|LOCKED" type="uint8" name="status"/>
+      </message>
+      <message name="AIRSPEED_MS45XX" id="138">
+        <field unit="Pa" type="float" name="diffPress"/>
+        <field unit="0.1 deg_celcius" type="int16" name="temperature" alt_unit_coef="0.1" alt_unit="deg_celcius"/>
+        <field unit="m/s" type="float" name="airspeed"/>
+      </message>
+      <message name="STAB_ATTITUDE_INT" id="140">
+        <field type="int32" name="est_p" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="est_q" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="est_r" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="est_phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="est_theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="est_psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="sp_phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="sp_theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="sp_psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="sum_err_phi"/>
+        <field type="int32" name="sum_err_theta"/>
+        <field type="int32" name="sum_err_psi"/>
+        <field type="int32" name="delta_a_fb" alt_unit_coef="0.0000153"/>
+        <field type="int32" name="delta_e_fb" alt_unit_coef="0.0000153"/>
+        <field type="int32" name="delta_r_fb" alt_unit_coef="0.0000153"/>
+        <field type="int32" name="delta_a_ff" alt_unit_coef="0.0000153"/>
+        <field type="int32" name="delta_e_ff" alt_unit_coef="0.0000153"/>
+        <field type="int32" name="delta_r_ff" alt_unit_coef="0.0000153"/>
+        <field type="int32" name="delta_a"/>
+        <field type="int32" name="delta_e"/>
+        <field type="int32" name="delta_r"/>
+      </message>
+      <message name="STAB_ATTITUDE_REF_INT" id="141">
+        <field type="int32" name="sp_phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="sp_theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="sp_psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="ref_phi" alt_unit_coef="0.0000546" alt_unit="deg"/>
+        <field type="int32" name="ref_theta" alt_unit_coef="0.0000546" alt_unit="deg"/>
+        <field type="int32" name="ref_psi" alt_unit_coef="0.0000546" alt_unit="deg"/>
+        <field type="int32" name="ref_p" alt_unit_coef="0.0008743" alt_unit="deg/s"/>
+        <field type="int32" name="ref_q" alt_unit_coef="0.0008743" alt_unit="deg/s"/>
+        <field type="int32" name="ref_r" alt_unit_coef="0.0008743" alt_unit="deg/s"/>
+        <field type="int32" name="ref_pd" alt_unit_coef="0.0139882" alt_unit="deg/s2"/>
+        <field type="int32" name="ref_qd" alt_unit_coef="0.0139882" alt_unit="deg/s2"/>
+        <field type="int32" name="ref_rd" alt_unit_coef="0.0139882" alt_unit="deg/s2"/>
+      </message>
+      <message name="STAB_ATTITUDE_REF_FLOAT" id="142">
+        <field type="float" name="sp_phi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="sp_theta" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="sp_psi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="ref_phi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="ref_theta" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="ref_psi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="ref_p" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field type="float" name="ref_q" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field type="float" name="ref_r" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field type="float" name="ref_pd" alt_unit_coef="57.29578" alt_unit="deg/s2"/>
+        <field type="float" name="ref_qd" alt_unit_coef="57.29578" alt_unit="deg/s2"/>
+        <field type="float" name="ref_rd" alt_unit_coef="57.29578" alt_unit="deg/s2"/>
+      </message>
+      <message name="ROTORCRAFT_CMD" id="143">
+        <field type="int32" name="cmd_roll"/>
+        <field type="int32" name="cmd_pitch"/>
+        <field type="int32" name="cmd_yaw"/>
+        <field type="int32" name="cmd_thrust"/>
+      </message>
+      <message name="GUIDANCE_H_INT" id="144">
+        <field type="int32" name="sp_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="sp_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ref_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ref_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="est_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="est_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+      </message>
+      <message name="VERT_LOOP" id="145">
+        <field type="int32" name="z_sp" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="zd_sp" alt_unit_coef="0.0000019" alt_unit="m"/>
+        <field type="int32" name="est_z" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="est_zd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="est_zdd" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+        <field type="int32" name="ref_z" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ref_zd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ref_zdd" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+        <field type="int32" name="adp_inv_m" alt_unit_coef="0.0000000596" alt_unit="foo"/>
+        <field type="int32" name="adp_cov" alt_unit_coef="0.0000000596" alt_unit="foo"/>
+        <field type="int32" name="adp_meas" alt_unit_coef="0.0000000596" alt_unit="foo"/>
+        <field type="int32" name="sum_err"/>
+        <field type="int32" name="ff_cmd"/>
+        <field type="int32" name="fb_cmd"/>
+        <field type="int32" name="delta_t"/>
+      </message>
+      <message name="HOVER_LOOP" id="146">
+        <field type="int32" name="sp_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="sp_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="est_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="est_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="est_xd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="est_yd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="est_xdd" alt_unit_coef="0.0009765" alt_unit="m/s2"/>
+        <field type="int32" name="est_ydd" alt_unit_coef="0.0009765" alt_unit="m/s2"/>
+        <field type="int32" name="err_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="err_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="err_xd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="err_yd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="err_sum_x"/>
+        <field type="int32" name="err_sum_y"/>
+        <field type="int32" name="cmd_x"/>
+        <field type="int32" name="cmd_y"/>
+        <field unit="rad" type="float" name="cmd_heading" alt_unit="deg"/>
+      </message>
+      <message name="ROTORCRAFT_FP" id="147">
+        <field type="int32" name="east" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="north" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="up" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="veast" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="vnorth" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="vup" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="carrot_east" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="carrot_north" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="carrot_up" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="carrot_psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="thrust"/>
+        <field unit="s" type="uint16" name="flight_time"/>
+      </message>
+      <message name="TEMP_ADC" id="148">
+        <field unit="deg_celsius" type="float" name="temp1" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="temp2" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="temp3" format="%.2f"/>
+      </message>
+      <message name="GUIDANCE_H_REF_INT" id="149">
+        <field type="int32" name="sp_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ref_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="sp_xd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ref_xd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ref_xdd" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+        <field type="int32" name="sp_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ref_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="sp_yd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ref_yd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ref_ydd" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+      </message>
+      <message name="ROTORCRAFT_TUNE_HOVER" id="150">
+        <field type="int16" name="rc_roll"/>
+        <field type="int16" name="rc_pitch"/>
+        <field type="int16" name="rc_yaw"/>
+        <field type="int32" name="cmd_roll"/>
+        <field type="int32" name="cmd_pitch"/>
+        <field type="int32" name="cmd_yaw"/>
+        <field type="int32" name="cmd_thrust"/>
+        <field type="int32" name="body_phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="body_theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="body_psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+      </message>
+      <message name="INS_Z" id="151">
+        <field unit="m" type="float" name="baro_z"/>
+        <field type="int32" name="ins_z" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ins_zd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ins_zdd" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+      </message>
+      <message name="PCAP01_STATUS" id="152">
+        <field type="uint32" name="ihumid"/>
+        <field type="uint32" name="itemp"/>
+        <field unit="rel_hum" type="float" name="humid" format="%.2f"/>
+        <field unit="deg_celsius" type="float" name="temp" format="%.2f"/>
+      </message>
+      <message name="GEIGER_COUNTER" id="153">
+        <field unit="events" type="uint32" name="tube1"/>
+        <field unit="events" type="uint32" name="tube2"/>
+        <field unit="volts" type="uint16" name="vsupply"/>
+      </message>
+      <message name="INS_REF" id="154">
+        <field type="int32" name="ecef_x0" alt_unit_coef="0.01" alt_unit="m"/>
+        <field type="int32" name="ecef_y0" alt_unit_coef="0.01" alt_unit="m"/>
+        <field type="int32" name="ecef_z0" alt_unit_coef="0.01" alt_unit="m"/>
+        <field unit="1e7deg" type="int32" name="lat0" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon0" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field type="int32" name="alt0" alt_unit_coef="0.001" alt_unit="m"/>
+        <field type="int32" name="hmsl0" alt_unit_coef="0.001" alt_unit="m"/>
+        <field unit="pascal" type="float" name="baro_qfe"/>
+      </message>
+      <message name="GPS_INT" id="155">
+        <field unit="cm" type="int32" name="ecef_x" alt_unit="m"/>
+        <field unit="cm" type="int32" name="ecef_y" alt_unit="m"/>
+        <field unit="cm" type="int32" name="ecef_z" alt_unit="m"/>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">altitude above WGS84 reference ellipsoid</field>
+        <field unit="mm" type="int32" name="hmsl" alt_unit="m">height above mean sea level (geoid)</field>
+        <field unit="cm/s" type="int32" name="ecef_xd" alt_unit="m/s"/>
+        <field unit="cm/s" type="int32" name="ecef_yd" alt_unit="m/s"/>
+        <field unit="cm/s" type="int32" name="ecef_zd" alt_unit="m/s"/>
+        <field unit="cm" type="uint32" name="pacc" alt_unit="m"/>
+        <field unit="cm/s" type="uint32" name="sacc" alt_unit="m/s"/>
+        <field type="uint32" name="tow"/>
+        <field type="uint16" name="pdop"/>
+        <field type="uint8" name="numsv"/>
+        <field values="NONE|NA|2D|3D|DGPS|RTK" type="uint8" name="fix"/>
+        <field values="NONE|UBX|NMEA|SIRF|SKYTRAQ|MTK|PIKSI|XSENS|DATALINK|UDP|ARDRONE2|SIM|MULTI|VECTORNAV|IMCU" type="uint8" name="comp_id"/>
+      </message>
+      <message name="AHRS_EULER_INT" id="156">
+        <field type="int32" name="imu_phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="imu_theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="imu_psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="body_phi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="body_theta" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field type="int32" name="body_psi" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN" type="uint8" name="comp_id"/>
+      </message>
+      <message name="AHRS_QUAT_INT" id="157">
+        <field type="float" name="weight"/>
+        <field type="int32" name="imu_qi" alt_unit_coef="0.0000305" alt_unit=""/>
+        <field type="int32" name="imu_qx" alt_unit_coef="0.0000305" alt_unit=""/>
+        <field type="int32" name="imu_qy" alt_unit_coef="0.0000305" alt_unit=""/>
+        <field type="int32" name="imu_qz" alt_unit_coef="0.0000305" alt_unit=""/>
+        <field type="int32" name="body_qi" alt_unit_coef="0.0000305" alt_unit=""/>
+        <field type="int32" name="body_qx" alt_unit_coef="0.0000305" alt_unit=""/>
+        <field type="int32" name="body_qy" alt_unit_coef="0.0000305" alt_unit=""/>
+        <field type="int32" name="body_qz" alt_unit_coef="0.0000305" alt_unit=""/>
+        <field values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN" type="uint8" name="comp_id"/>
+      </message>
+      <message name="ROTORCRAFT_NAV_STATUS" id="159">
+        <field unit="s" type="uint16" name="block_time"/>
+        <field unit="s" type="uint16" name="stage_time"/>
+        <field unit="m" type="float" name="dist_home" format="%.1f"/>
+        <field unit="m" type="float" name="dist_wp" format="%.1f"/>
+        <field type="uint8" name="cur_block"/>
+        <field type="uint8" name="cur_stage"/>
+        <field type="uint8" name="horizontal_mode"/>
+      </message>
+      <message name="ROTORCRAFT_RADIO_CONTROL" id="160">
+        <field unit="pprz" type="int16" name="roll"/>
+        <field unit="pprz" type="int16" name="pitch"/>
+        <field unit="pprz" type="int16" name="yaw"/>
+        <field unit="pprz" type="int16" name="throttle"/>
+        <field unit="pprz" type="int16" name="mode"/>
+        <field unit="pprz" type="int16" name="kill"/>
+        <field values="OK|LOST|REALLY_LOST" type="uint8" name="status"/>
+      </message>
+      <message name="VFF_EXTENDED" id="161">
+        <field type="float" name="meas_baro"/>
+        <field type="float" name="meas_alt"/>
+        <field type="float" name="z"/>
+        <field type="float" name="zd"/>
+        <field type="float" name="zdd"/>
+        <field type="float" name="bias"/>
+        <field type="float" name="offset"/>
+      </message>
+      <message name="VFF" id="162">
+        <field type="float" name="measure"/>
+        <field type="float" name="z"/>
+        <field type="float" name="zd"/>
+        <field type="float" name="bias"/>
+        <field type="float" name="Pzz"/>
+        <field type="float" name="Pzdzd"/>
+        <field type="float" name="Pbb"/>
+      </message>
+      <message name="GEO_MAG" id="163">
+        <field type="float" name="Hx"/>
+        <field type="float" name="Hy"/>
+        <field type="float" name="Hz"/>
+        <field values="NONE|GENERIC|GEOM|ICQ|ICE|FC|DCM|FINV|MLKF|GX3" type="uint8" name="comp_id"/>
+      </message>
+      <message name="HFF" id="164">
+        <field type="float" name="x"/>
+        <field type="float" name="y"/>
+        <field type="float" name="xd"/>
+        <field type="float" name="yd"/>
+        <field type="float" name="xdd"/>
+        <field type="float" name="ydd"/>
+      </message>
+      <message name="HFF_DBG" id="165">
+        <field type="float" name="x_measure"/>
+        <field type="float" name="y_measure"/>
+        <field type="float" name="xd_measure"/>
+        <field type="float" name="yd_measure"/>
+        <field type="float" name="Pxx"/>
+        <field type="float" name="Pyy"/>
+        <field type="float" name="Pxdxd"/>
+        <field type="float" name="Pydyd"/>
+      </message>
+      <message name="HFF_GPS" id="166">
+        <field type="uint16" name="lag_cnt"/>
+        <field type="int16" name="lag_cnt_err"/>
+        <field type="int16" name="save_cnt"/>
+      </message>
+      <message name="ROTORCRAFT_CAM" id="168">
+        <field unit="2^12rad" type="int16" name="tilt" alt_unit_coef="0.0139882" alt_unit="deg"/>
+        <field unit="2^12rad" type="int16" name="pan" alt_unit_coef="0.0139882" alt_unit="deg"/>
+      </message>
+      <message name="AHRS_REF_QUAT" id="169">
+        <field type="int32" name="ref_qi"/>
+        <field type="int32" name="ref_qx"/>
+        <field type="int32" name="ref_qy"/>
+        <field type="int32" name="ref_qz"/>
+        <field type="int32" name="body_qi"/>
+        <field type="int32" name="body_qx"/>
+        <field type="int32" name="body_qy"/>
+        <field type="int32" name="body_qz"/>
+      </message>
+      <message name="AHRS_EULER" id="173">
+        <field unit="rad" type="float" name="phi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="theta" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="psi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN" type="uint8" name="comp_id"/>
+      </message>
+      <message name="AHRS_MEASUREMENT_EULER" id="174">
+        <field unit="rad" type="float" name="phi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="theta" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="psi" alt_unit_coef="57.29578" alt_unit="deg"/>
+      </message>
+      <message name="WT" id="175">
+        <field type="float" name="rpm"/>
+      </message>
+      <message name="CSC_CAN_DEBUG" id="176">
+        <field type="uint32" name="err_nb"/>
+        <field type="uint32" name="err_code"/>
+      </message>
+      <message name="CSC_CAN_MSG" id="177">
+        <field type="uint32" name="frame"/>
+        <field type="uint32" name="id"/>
+        <field type="uint32" name="data_a"/>
+        <field type="uint32" name="data_b"/>
+      </message>
+      <message name="AHRS_GYRO_BIAS_INT" id="178">
+        <field type="int32" name="bp" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="bq" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field type="int32" name="br" alt_unit_coef="0.0139882" alt_unit="deg/s"/>
+        <field values="NONE|GENERIC|IR|ICQ|ICE|FC|DCM|FINV|MLKF|GX3|CHIMU|VN" type="uint8" name="comp_id"/>
+      </message>
+      <message name="AEROPROBE" id="179">
+        <description>        Airflow data returned by OTF and uADC 3D probes from Aeroprobe.</description>
+        <field type="uint32" name="counter"/>
+        <field unit="cm/s" type="int16" name="velocity" alt_unit="m/s"/>
+        <field unit="centideg" type="int16" name="a_attack" alt_unit="deg"/>
+        <field unit="centideg" type="int16" name="a_sideslip" alt_unit="deg"/>
+        <field unit="cm" type="int32" name="altitude" alt_unit="m"/>
+        <field unit="Pa" type="int32" name="dynamic_p"/>
+        <field unit="Pa" type="int32" name="static_p"/>
+        <field type="uint8" name="checksum"/>
+      </message>
+      <message name="FMS_TIME" id="180">
+        <field type="uint32" name="tv_sec"/>
+        <field type="uint32" name="tv_nsec"/>
+        <field type="uint32" name="delay_ns"/>
+      </message>
+      <message name="AHRS_LKF" id="193">
+        <field unit="rad" type="float" name="phi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="theta" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="psi" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field type="float" name="qi"/>
+        <field type="float" name="qx"/>
+        <field type="float" name="qy"/>
+        <field type="float" name="qz"/>
+        <field unit="rad/s" type="float" name="p" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field unit="rad/s" type="float" name="q" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field unit="rad/s" type="float" name="r" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field type="float" name="ax"/>
+        <field type="float" name="ay"/>
+        <field type="float" name="az"/>
+        <field type="float" name="mx"/>
+        <field type="float" name="my"/>
+        <field type="float" name="mz"/>
+      </message>
+      <message name="NPS_SENSORS_SCALED" id="197">
+        <field type="float" name="acc_x"/>
+        <field type="float" name="acc_y"/>
+        <field type="float" name="acc_z"/>
+        <field type="float" name="mag_x"/>
+        <field type="float" name="mag_y"/>
+        <field type="float" name="mag_z"/>
+      </message>
+      <message name="INS" id="198">
+        <field type="int32" name="ins_x" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ins_y" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ins_z" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ins_xd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ins_yd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ins_zd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+        <field type="int32" name="ins_xdd" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+        <field type="int32" name="ins_ydd" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+        <field type="int32" name="ins_zdd" alt_unit_coef="0.0009766" alt_unit="m/s2"/>
+      </message>
+      <message name="IMU_GYRO" id="200">
+        <field unit="rad/s" type="float" name="gp" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field unit="rad/s" type="float" name="gq" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+        <field unit="rad/s" type="float" name="gr" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+      </message>
+      <message name="IMU_MAG" id="201">
+        <field type="float" name="mx"/>
+        <field type="float" name="my"/>
+        <field type="float" name="mz"/>
+      </message>
+      <message name="IMU_ACCEL" id="202">
+        <field unit="m/s-2" type="float" name="ax"/>
+        <field unit="m/s-2" type="float" name="ay"/>
+        <field unit="m/s-2" type="float" name="az"/>
+      </message>
+      <message name="IMU_GYRO_RAW" id="203">
+        <field unit="adc" type="int32" name="gp"/>
+        <field unit="adc" type="int32" name="gq"/>
+        <field unit="adc" type="int32" name="gr"/>
+      </message>
+      <message name="IMU_ACCEL_RAW" id="204">
+        <field unit="adc" type="int32" name="ax"/>
+        <field unit="adc" type="int32" name="ay"/>
+        <field unit="adc" type="int32" name="az"/>
+      </message>
+      <message name="IMU_MAG_RAW" id="205">
+        <field unit="adc" type="int32" name="mx"/>
+        <field unit="adc" type="int32" name="my"/>
+        <field unit="adc" type="int32" name="mz"/>
+      </message>
+      <message name="IMU_MAG_SETTINGS" id="206">
+        <field type="float" name="inclination"/>
+        <field type="float" name="declination"/>
+        <field type="float" name="hardiron_x"/>
+        <field type="float" name="hardiron_y"/>
+        <field type="float" name="hardiron_z"/>
+      </message>
+      <message name="IMU_MAG_CURRENT_CALIBRATION" id="207">
+        <field unit="adc" type="int32" name="mx"/>
+        <field unit="adc" type="int32" name="my"/>
+        <field unit="adc" type="int32" name="mz"/>
+        <field unit="mA" type="int32" name="electrical_current"/>
+      </message>
+      <message name="UART_ERRORS" id="208">
+        <field type="uint16" name="overrun_cnt"/>
+        <field type="uint16" name="noise_err_cnt"/>
+        <field type="uint16" name="framing_err_cnt"/>
+        <field type="uint8" name="bus_number"/>
+      </message>
+      <message name="IMU_GYRO_LP" id="209">
+        <field unit="rad/s" type="float" name="gp"/>
+        <field unit="rad/s" type="float" name="gq"/>
+        <field unit="rad/s" type="float" name="gr"/>
+      </message>
+      <message name="IMU_PRESSURE" id="210">
+        <field unit="pascal" type="float" name="p"/>
+      </message>
+      <message name="TUNE_VERT" id="213">
+        <field type="int32" name="z_sp" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="est_z" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ref_z" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="ref_zd" alt_unit_coef="0.0000019" alt_unit="m/s"/>
+      </message>
+      <message name="MF_DAQ_STATE" id="214">
+        <field unit="s" type="uint16" name="flight_time"/>
+        <field type="float" name="p"/>
+        <field type="float" name="q"/>
+        <field type="float" name="r"/>
+        <field type="float" name="phi"/>
+        <field type="float" name="theta"/>
+        <field type="float" name="psi"/>
+        <field type="float" name="ax"/>
+        <field type="float" name="ay"/>
+        <field type="float" name="az"/>
+        <field type="float" name="ve"/>
+        <field type="float" name="vn"/>
+        <field type="float" name="vu"/>
+        <field type="float" name="lat"/>
+        <field type="float" name="lon"/>
+        <field type="float" name="alt"/>
+        <field type="float" name="we"/>
+        <field type="float" name="wn"/>
+      </message>
+      <message name="INFO_MSG" id="215">
+        <field type="char[]" name="msg"/>
+      </message>
+      <message name="STAB_ATTITUDE_INDI" id="216">
+        <field type="float" name="angular_accel_p"/>
+        <field type="float" name="angular_accel_q"/>
+        <field type="float" name="angular_accel_r"/>
+        <field type="float" name="angular_accel_ref_p"/>
+        <field type="float" name="angular_accel_ref_q"/>
+        <field type="float" name="angular_accel_ref_r"/>
+        <field type="float" name="g1_p"/>
+        <field type="float" name="g1_q"/>
+        <field type="float" name="g1_r"/>
+        <field type="float" name="g2_r"/>
+      </message>
+      <message name="ROTORCRAFT_FP_MIN" id="217">
+        <description>Minimalistic message to track Rotorcraft over very low bandwidth links</description>
+        <field type="int32" name="east" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="north" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field type="int32" name="up" alt_unit_coef="0.0039063" alt_unit="m"/>
+        <field unit="cm/s" type="uint16" name="gspeed" alt_unit="m/s"/>
+      </message>
+      <message name="BEBOP_ACTUATORS" id="218">
+        <field type="int32" name="cmd_thrust"/>
+        <field type="int32" name="cmd_roll"/>
+        <field type="int32" name="cmd_pitch"/>
+        <field type="int32" name="cmd_yaw"/>
+        <field unit="rpm" type="uint16" name="rpm_ref_lf"/>
+        <field unit="rpm" type="uint16" name="rpm_ref_rf"/>
+        <field unit="rpm" type="uint16" name="rpm_ref_rb"/>
+        <field unit="rpm" type="uint16" name="rpm_ref_lb"/>
+        <field unit="rpm" type="uint16" name="rpm_obs_lf"/>
+        <field unit="rpm" type="uint16" name="rpm_obs_rf"/>
+        <field unit="rpm" type="uint16" name="rpm_obs_rb"/>
+        <field unit="rpm" type="uint16" name="rpm_obs_lb"/>
+      </message>
+      <message name="WEATHER" id="219">
+        <field unit="Pa" type="float" name="p_amb" alt_unit_coef="0.01" alt_unit="mBar"/>
+        <field unit="deg C" type="float" name="t_amb"/>
+        <field unit="m/s" type="float" name="windspeed"/>
+        <field unit="deg" type="float" name="wind_from"/>
+        <field unit="%" type="float" name="humidity"/>
+      </message>
+      <message name="IMU_TURNTABLE" id="220">
+        <field unit="rad/s" type="float" name="omega" alt_unit_coef="57.29578" alt_unit="deg/s"/>
+      </message>
+      <message name="BARO_RAW" id="221">
+        <field type="float" name="abs"/>
+        <field type="float" name="diff"/>
+      </message>
+      <message name="AIR_DATA" id="222">
+        <field unit="Pa" type="float" name="pressure">static pressure</field>
+        <field unit="Pa" type="float" name="diff_p">differential pressure</field>
+        <field unit="deg celcius" type="float" name="temp">air temperature</field>
+        <field unit="hPa" type="float" name="qnh">barometric pressure adjusted to sea level</field>
+        <field unit="m" type="float" name="amsl_baro">barometric altitude above mean sea level</field>
+        <field unit="m/s" type="float" name="airspeed">Equivalent Air Speed (or Calibrated Air Speed at low speed/altitude)</field>
+        <field type="float" name="tas">True Air Speed (when P, T and P_diff are available)</field>
+      </message>
+      <message name="AMSL" id="223">
+        <field unit="ft" type="float" name="AMSL_BARO" alt_unit="m"/>
+        <field unit="ft" type="float" name="AMSL_GPS" alt_unit="m"/>
+      </message>
+      <message name="DIVERGENCE" id="224">
+        <field type="float" name="divergence"> vertical velocity / height from optitrack (unit = 1/sec)</field>
+        <field type="float" name="divergence_vision"> vertical velocity / height from vision (unit = 1/sec)</field>
+        <field type="float" name="normalized_thrust"> thrust / max thrust paparazzi (-)</field>
+        <field type="float" name="cov_div"> covariance of divergence and thrust, or past divergence depending on the mode (-)</field>
+        <field type="float" name="pstate"> gain state in adaptive gain control: indicative of height (-) </field>
+        <field type="float" name="pused"> gain used for control, includes the effect of the p-gain of adaptive control (-) </field>
+        <field type="float" name="sonar"> measurement from the sonar (mm)</field>
+      </message>
+      <message name="VIDEO_SYNC" id="225">
+        <field type="uint8" name="id"/>
+      </message>
+      <message name="PERIODIC_TELEMETRY_ERR" id="226">
+        <field type="uint8" name="process"/>
+        <field type="uint8" name="mode"/>
+        <field type="uint8" name="id"/>
+      </message>
+      <message name="TIME" id="227">
+        <field type="uint32" name="t">an integral value representing the number of seconds elapsed since 00:00 hours, Jan 1, 1970 UTC</field>
+      </message>
+      <message name="OPTIC_FLOW_EST" id="228">
+        <field type="float" name="fps"/>
+        <field type="uint16" name="corner_cnt"/>
+        <field type="uint16" name="tracked_cnt"/>
+        <field unit="subpixels" type="int16" name="flow_x"/>
+        <field unit="subpixels" type="int16" name="flow_y"/>
+        <field unit="subpixels" type="int16" name="flow_der_x"/>
+        <field unit="subpixels" type="int16" name="flow_der_y"/>
+        <field unit="m/s" type="float" name="vel_x"/>
+        <field unit="m/s" type="float" name="vel_y"/>
+        <field unit="1/s" type="float" name="div_size"/>
+        <field unit="1/s" type="float" name="surface_roughness"/>
+        <field unit="1/s" type="float" name="divergence"/>
+      </message>
+      <message name="STEREO_IMG" id="229">
+        <field type="uint8" name="frequency"/>
+        <field type="uint8" name="data_size"/>
+        <field type="uint8[]" name="imageBuffer"/>
+      </message>
+      <message name="ROTORCRAFT_STATUS" id="231">
+        <field type="uint32" name="link_imu_nb_err"/>
+        <field type="uint8" name="motor_nb_err"/>
+        <field values="OK|LOST|REALLY_LOST" type="uint8" name="rc_status"/>
+        <field unit="Hz" type="uint8" name="frame_rate"/>
+        <field values="NO_FIX|NA|2D|3D|DGPS|RTK" type="uint8" name="gps_status"/>
+        <field values="KILL|FAILSAFE|HOME|RATE_DIRECT|ATTITUDE_DIRECT|RATE_RC_CLIMB|ATTITUDE_RC_CLIMB|ATTITUDE_CLIMB|RATE_Z_HOLD|ATTITUDE_Z_HOLD|HOVER_DIRECT|HOVER_CLIMB|HOVER_Z_HOLD|NAV|RC_DIRECT|CARE_FREE|FORWARD|MODULE|FLIP|GUIDED" type="uint8" name="ap_mode"/>
+        <field values="ON_GROUND|IN_FLIGHT" type="uint8" name="ap_in_flight"/>
+        <field values="MOTORS_OFF|MOTORS_ON" type="uint8" name="ap_motors_on"/>
+        <field values="KILL|RATE|ATTITUDE|HOVER|NAV|RC_DIRECT|CF|FORWARD|MODULE|FLIP|GUIDED" type="uint8" name="ap_h_mode"/>
+        <field values="KILL|RC_DIRECT|RC_CLIMB|CLIMB|HOVER|NAV|MODULE|FLIP|GUIDED" type="uint8" name="ap_v_mode"/>
+        <field unit="decivolt" type="uint16" name="vsupply"/>
+        <field unit="s" type="uint16" name="cpu_time"/>
+      </message>
+      <message name="STATE_FILTER_STATUS" id="232">
+        <field type="uint8" name="id"/>
+        <field values="UNKNOWN|INIT|ALIGN|OK|GPS_LOST|IMU_LOST|COV_ERR|IR_CONTRAST|ERROR" type="uint8" name="state_filter_mode"/>
+        <field type="uint16" name="value"/>
+      </message>
+      <message name="PX4FLOW" id="233">
+        <field unit="s" type="float" name="time_sec"/>
+        <field type="uint8" name="sensor_id"/>
+        <field type="int16" name="flow_x"/>
+        <field type="int16" name="flow_y"/>
+        <field unit="m" type="float" name="flow_comp_m_x"/>
+        <field unit="m" type="float" name="flow_comp_m_y"/>
+        <field type="uint8" name="quality"/>
+        <field unit="m" type="float" name="ground_distance"/>
+      </message>
+      <message name="LIDAR" id="234">
+        <field unit="m" type="float" name="distance"/>
+        <field values="INIT|REQ|READ|PARSE" type="uint8" name="status"/>
+        <field values="Pending|Running|Success|Failed|Done" type="uint8" name="trans_status"/>
+      </message>
+      <message name="VISUALTARGET" id="235">
+        <field type="uint16" name="x"/>
+        <field type="uint16" name="y"/>
+      </message>
+      <message name="SONAR" id="236">
+        <field type="uint16" name="sonar_meas"/>
+        <field unit="m" type="float" name="sonar_distance"/>
+      </message>
+      <message name="PAYLOAD_FLOAT" id="237">
+        <field type="float[]" name="values"/>
+      </message>
+      <message name="NPS_POS_LLH" id="238">
+        <field unit="rad" type="float" name="pprz_lat" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="lat_geod" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="lat_geoc" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="pprz_lon" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="rad" type="float" name="lon" alt_unit_coef="57.29578" alt_unit="deg"/>
+        <field unit="m" type="float" name="pprz_alt"/>
+        <field unit="m" type="float" name="alt_geod"/>
+        <field unit="m" type="float" name="agl"/>
+        <field unit="m" type="float" name="asl"/>
+      </message>
+      <message name="NPS_SPEED_POS" id="240">
+        <field unit="m/s2" type="float" name="ltpp_xdd"/>
+        <field unit="m/s2" type="float" name="ltpp_ydd"/>
+        <field unit="m/s2" type="float" name="ltpp_zdd"/>
+        <field unit="m/s" type="float" name="ltpp_xd"/>
+        <field unit="m/s" type="float" name="ltpp_yd"/>
+        <field unit="m/s" type="float" name="ltpp_zd"/>
+        <field unit="m" type="float" name="ltpp_x"/>
+        <field unit="m" type="float" name="ltpp_y"/>
+        <field unit="m" type="float" name="ltpp_z"/>
+      </message>
+      <message name="NPS_RATE_ATTITUDE" id="241">
+        <field unit="deg/s" type="float" name="p"/>
+        <field unit="deg/s" type="float" name="q"/>
+        <field unit="deg/s" type="float" name="r"/>
+        <field unit="deg" type="float" name="phi"/>
+        <field unit="deg" type="float" name="theta"/>
+        <field unit="deg" type="float" name="psi"/>
+      </message>
+      <message name="NPS_GYRO_BIAS" id="242">
+        <field unit="deg/s" type="float" name="bp"/>
+        <field unit="deg/s" type="float" name="bq"/>
+        <field unit="deg/s" type="float" name="br"/>
+      </message>
+      <message name="NPS_WIND" id="244">
+        <field unit="m/s" type="float" name="vx"/>
+        <field unit="m/s" type="float" name="vy"/>
+        <field unit="m/s" type="float" name="vz"/>
+      </message>
+      <message name="ESC" id="245">
+        <description>        Electronic Speed Controller data</description>
+        <field unit="A" type="float" name="amps">Current consumption</field>
+        <field unit="V" type="float" name="bat_volts">Input battery voltage</field>
+        <field unit="W" type="float" name="power">Electrical power</field>
+        <field unit="rpm" type="float" name="rpm">Motor rotation speed</field>
+        <field unit="V" type="float" name="motor_volts">Motor voltage</field>
+        <field unit="Wh" type="float" name="energy">Accumulated consumed energy</field>
+        <field type="uint8" name="motor_id">Motor ID</field>
+      </message>
+      <message name="RTOS_MON" id="246">
+        <description>        RTOS monitoring</description>
+        <field type="uint8" name="nb_threads">Number of running threads</field>
+        <field unit="%" type="uint8" name="cpu_load">Global CPU load</field>
+        <field unit="Bytes" type="uint32" name="core_free">Core free memory</field>
+        <field unit="Bytes" type="uint32" name="heap_free">Heap free memory</field>
+        <field unit="s" type="float" name="cpu_time"/>
+      </message>
+      <message name="PPRZ_DEBUG" id="247">
+        <field type="uint8" name="module"/>
+        <field type="uint8" name="errno"/>
+      </message>
+      <message name="BATTERY_MONITOR" id="248">
+        <field values="v3|v4|v5" type="uint8" name="version">Battery monitor version</field>
+        <field values="CURRENT|VOLTAGE|TEMP" type="uint8" name="bus_dev_stat">Bus monitor status</field>
+        <field values="Pending|Running|Success|Failed|Done" type="uint8" name="bus_trans_stat">Bus monitor i2c transaction status</field>
+        <field unit="mV" type="uint16" name="current_raw" alt_unit_coef="0.001" alt_unit="V">Raw bus current reading</field>
+        <field unit="A" type="float" name="current">Bus current</field>
+        <field unit="mV" type="uint16" name="bus_voltage" alt_unit_coef="0.001" alt_unit="V">Bus voltage</field>
+        <field unit="mV" type="uint16[]" name="bus_temp_raw">Raw temperature reading</field>
+        <field unit="C" type="float[]" name="bus_temp">Battery temperatures</field>
+        <field values="Pending|Running|Success|Failed|Done" type="uint8" name="bal1_trans_stat">Cell bank 1 monitor i2c transaction status</field>
+        <field unit="mV" type="uint16[]" name="bal1_cells">Cell bank 1 voltage</field>
+        <field values="Pending|Running|Success|Failed|Done" type="uint8" name="bal2_trans_stat">Cell bank 2 monitor i2c transaction status</field>
+        <field unit="mV" type="uint16[]" name="bal2_cells">Cell bank 2 voltage</field>
+        <field values="mV" type="uint16" name="safety_plug">Safety plug voltage</field>
+      </message>
+      <message name="INDI_G" id="250">
+        <field unit="none" type="float[]" name="G1_roll"/>
+        <field unit="none" type="float[]" name="G1_pitch"/>
+        <field unit="none" type="float[]" name="G1_yaw"/>
+        <field unit="none" type="float[]" name="G1_thrust"/>
+        <field unit="none" type="float[]" name="G2"/>
+      </message>
+      <message name="GPS_RTK" id="251">
+        <field unit="ms" type="uint32" name="iTOW"/>
+        <field type="uint16" name="refStationId"/>
+        <field unit="cm" type="int32" name="relPosN"/>
+        <field unit="cm" type="int32" name="relPosE"/>
+        <field unit="cm" type="int32" name="relPosD"/>
+        <field unit="mm" type="int8" name="relPosHPN"/>
+        <field unit="mm" type="int8" name="relPosHPE"/>
+        <field unit="mm" type="int8" name="relPosHPD"/>
+        <field unit="mm" type="uint32" name="accN"/>
+        <field unit="mm" type="uint32" name="accE"/>
+        <field unit="mm" type="uint32" name="accD"/>
+        <field values="NONE|RTK FLOAT|RTK FIX" type="uint8" name="carrSoln"/>
+        <field values="FALSE|TRUE" type="uint8" name="relPosValid"/>
+        <field values="NONE|DGPS" type="uint8" name="diffSoln"/>
+        <field values="NONE|3D" type="uint8" name="gnssFixOK"/>
+      </message>
+      <message name="GPS_RXMRTCM" id="249">
+        <field type="uint32" name="Msg1005"/>
+        <field type="uint32" name="Msg1077"/>
+        <field type="uint32" name="Msg1087"/>
+        <field type="uint32" name="Crc1005"/>
+        <field type="uint32" name="Crc1077"/>
+        <field type="uint32" name="Crc1087"/>
+      </message>
+      <message name="GPS_SMALL" id="252">
+        <field type="uint32" name="multiplex_speed">bits 31-21 course in decideg : bits 20-10 ground speed in cm/s : bits 9-0 climb speed in cm/s</field>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="cm" type="int16" name="alt" alt_unit="m">height above the ellipsoid</field>
+      </message>
+      <message name="I2C_ERRORS" id="253">
+        <field type="uint16" name="wd_reset_cnt"/>
+        <field type="uint16" name="queue_full_cnt"/>
+        <field type="uint16" name="acknowledge_failure_cnt"/>
+        <field type="uint16" name="misplaced_start_or_stop_cnt"/>
+        <field type="uint16" name="arbitration_lost_cnt"/>
+        <field type="uint16" name="overrun_or_underrun_cnt"/>
+        <field type="uint16" name="pec_error_in_reception_cnt"/>
+        <field type="uint16" name="timeout_or_tlow_error_cnt"/>
+        <field type="uint16" name="smbus_alert_cnt"/>
+        <field type="uint16" name="unexpected_event_cnt"/>
+        <field type="uint32" name="last_unexpected_event"/>
+        <field type="uint8" name="bus_number"/>
+      </message>
+    </msg_class>
+    <msg_class name="datalink" id="1">
+      <message name="ACINFO" link="broadcasted" id="1">
+        <field unit="decideg" type="int16" name="course" alt_unit="deg"/>
+        <field unit="cm" type="int32" name="utm_east" alt_unit="m"/>
+        <field unit="cm" type="int32" name="utm_north" alt_unit="m"/>
+        <field type="uint8" name="utm_zone"/>
+        <field unit="cm" type="int32" name="alt" alt_unit="m">Height above Mean Sea Level (geoid)</field>
+        <field unit="ms" type="uint32" name="itow" alt_unit_coef="0.001" alt_unit="s"/>
+        <field unit="cm/s" type="uint16" name="speed" alt_unit="m/s">ground speed</field>
+        <field unit="cm/s" type="int16" name="climb" alt_unit="m/s"/>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="MOVE_WP" link="forwarded" id="2">
+        <field type="uint8" name="wp_id"/>
+        <field type="uint8" name="ac_id"/>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">Height above Mean Sea Level (geoid)</field>
+      </message>
+      <message name="WIND_INFO" link="forwarded" id="3">
+        <description>        Wind information.
+        The wind is reported as a vector, it gives the direction the wind is blowing to.
+        This can be comming from the ground wind estimator
+        or from an embedded algorithm.
+        Flags field definition:
+        - bit 0: horizontal wind is valid (east and north fields)
+        - bit 1: vertical wind is valid (up field)
+        - bit 2: airspeed is valid</description>
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="flags">bit 0: horizontal wind, bit 1: vertical wind: bit 2: airspeed</field>
+        <field unit="m/s" type="float" name="east">east component of the wind</field>
+        <field unit="m/s" type="float" name="north">north component of the wind</field>
+        <field unit="m/s" type="float" name="up">vertical component of the wind</field>
+        <field unit="m/s" type="float" name="airspeed">local airspeed norm</field>
+      </message>
+      <message name="SETTING" link="forwarded" id="4">
+        <field type="uint8" name="index"/>
+        <field type="uint8" name="ac_id"/>
+        <field type="float" name="value"/>
+      </message>
+      <message name="BLOCK" link="forwarded" id="5">
+        <field type="uint8" name="block_id"/>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="HITL_UBX" link="forwarded" id="6">
+        <field type="uint8" name="class"/>
+        <field type="uint8" name="id"/>
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8[]" name="ubx_payload"/>
+      </message>
+      <message name="HITL_INFRARED" link="forwarded" id="7">
+        <field type="int16" name="roll"/>
+        <field type="int16" name="pitch"/>
+        <field type="int16" name="top"/>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="PING" id="8"/>
+      <message name="FORMATION_SLOT" link="broadcasted" id="9">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="mode"/>
+        <field unit="m" type="float" name="slot_east" format="%.1f"/>
+        <field unit="m" type="float" name="slot_north" format="%.1f"/>
+        <field unit="m" type="float" name="slot_alt" format="%.1f"/>
+      </message>
+      <message name="FORMATION_STATUS" link="broadcasted" id="10">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="leader_id"/>
+        <field type="uint8" name="status"/>
+      </message>
+      <message name="JOYSTICK_RAW" link="forwarded" id="11">
+        <field type="uint8" name="ac_id"/>
+        <field type="int8" name="roll"/>
+        <field type="int8" name="pitch"/>
+        <field type="int8" name="throttle"/>
+      </message>
+      <message name="COMMANDS_RAW" link="forwarded" id="12">
+        <field type="uint8" name="ac_id"/>
+        <field type="int8[]" name="commands"/>
+      </message>
+      <message name="DGPS_RAW" link="forwarded" id="13">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="length"/>
+        <field type="uint8[]" name="rtcm"/>
+      </message>
+      <message name="ACINFO_LLA" link="broadcasted" id="14">
+        <field unit="decideg" type="int16" name="course" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="cm" type="int32" name="alt" alt_unit="m">Height above ellipsoid</field>
+        <field unit="ms" type="uint32" name="itow" alt_unit_coef="0.001" alt_unit="s"/>
+        <field unit="cm/s" type="uint16" name="speed" alt_unit="m/s">ground speed</field>
+        <field unit="cm/s" type="int16" name="climb" alt_unit="m/s"/>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="GET_SETTING" link="forwarded" id="16">
+        <field type="uint8" name="index"/>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="TCAS_RESOLVE" link="forwarded" id="17">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="ac_id_conflict"/>
+        <field values="NONE|LEVEL|CLIMB|DESCEND" type="uint8" name="resolve"/>
+      </message>
+      <message name="MISSION_GOTO_WP" link="forwarded" id="20">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="m" type="float" name="wp_east"/>
+        <field unit="m" type="float" name="wp_north"/>
+        <field unit="m" type="float" name="wp_alt">altitude above geoid (MSL)</field>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_GOTO_WP_LLA" link="forwarded" id="21">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="1e7deg" type="int32" name="wp_lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="wp_lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="wp_alt" alt_unit="m">altitude above geoid (MSL)</field>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_CIRCLE" link="forwarded" id="22">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="m" type="float" name="center_east"/>
+        <field unit="m" type="float" name="center_north"/>
+        <field unit="m" type="float" name="center_alt">altitude above geoid (MSL)</field>
+        <field unit="m" type="float" name="radius"/>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_CIRCLE_LLA" link="forwarded" id="23">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="1e7deg" type="int32" name="center_lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="center_lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="center_alt" alt_unit="m">altitude above geoid (MSL)</field>
+        <field unit="m" type="float" name="radius"/>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_SEGMENT" link="forwarded" id="24">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="m" type="float" name="segment_east_1"/>
+        <field unit="m" type="float" name="segment_north_1"/>
+        <field unit="m" type="float" name="segment_east_2"/>
+        <field unit="m" type="float" name="segment_north_2"/>
+        <field unit="m" type="float" name="segment_alt">altitude above geoid (MSL)</field>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_SEGMENT_LLA" link="forwarded" id="25">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="1e7deg" type="int32" name="segment_lat_1" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="segment_lon_1" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="segment_lat_2" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="segment_lon_2" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="segment_alt" alt_unit="m">altitude above geoid (MSL)</field>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_PATH" link="forwarded" id="26">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="m" type="float" name="point_east_1"/>
+        <field unit="m" type="float" name="point_north_1"/>
+        <field unit="m" type="float" name="point_east_2"/>
+        <field unit="m" type="float" name="point_north_2"/>
+        <field unit="m" type="float" name="point_east_3"/>
+        <field unit="m" type="float" name="point_north_3"/>
+        <field unit="m" type="float" name="point_east_4"/>
+        <field unit="m" type="float" name="point_north_4"/>
+        <field unit="m" type="float" name="point_east_5"/>
+        <field unit="m" type="float" name="point_north_5"/>
+        <field unit="m" type="float" name="path_alt">altitude above geoid (MSL)</field>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="nb"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_PATH_LLA" link="forwarded" id="27">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="1e7deg" type="int32" name="point_lat_1" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lon_1" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lat_2" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lon_2" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lat_3" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lon_3" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lat_4" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lon_4" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lat_5" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="point_lon_5" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="path_alt" alt_unit="m">altitude above geoid (MSL)</field>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="nb"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_SURVEY" link="forwarded" id="28">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="m" type="float" name="survey_east_1"/>
+        <field unit="m" type="float" name="survey_north_1"/>
+        <field unit="m" type="float" name="survey_east_2"/>
+        <field unit="m" type="float" name="survey_north_2"/>
+        <field unit="m" type="float" name="survey_alt">altitude above geoid (MSL)</field>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="MISSION_SURVEY_LLA" link="forwarded" id="29">
+        <field type="uint8" name="ac_id"/>
+        <field values="APPEND|PREPEND|REPLACE_CURRENT|REPLACE_ALL" type="uint8" name="insert"/>
+        <field unit="1e7deg" type="int32" name="survey_lat_1" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="survey_lon_1" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="survey_lat_2" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="survey_lon_2" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="survey_alt" alt_unit="m">altitude above geoid (MSL)</field>
+        <field unit="s" type="float" name="duration"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="GOTO_MISSION" link="forwarded" id="30">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="mission_id"/>
+      </message>
+      <message name="NEXT_MISSION" link="forwarded" id="31">
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="END_MISSION" link="forwarded" id="32">
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="COPILOT_STATUS_DL" link="forwarded" id="33">
+        <field type="uint8" name="ac_id"/>
+        <field unit="%" type="uint8" name="used_memory">Percentage of used memory (RAM) of the mission computer rounded up to whole percent</field>
+        <field unit="s" type="float" name="timestamp">Mission computer seconds since startup</field>
+        <field unit="%" type="uint8" name="used_disk">Percentage of used disk of the mission computer rounded up to whole percent</field>
+        <field values="UNKNOWN|INIT|LOGGING|FAULT" type="uint8" name="status">Mission computer status</field>
+        <field values="NONE|IO_ERROR" type="uint8" name="error_code">Error codes of the mission computer</field>
+      </message>
+      <message name="CAMERA_PAYLOAD_DL" link="forwarded" id="34">
+        <field type="uint8" name="ac_id"/>
+        <field values="NONE|CAMERA_ERR|DOOR_ERR" type="uint8" name="error_code">Error codes of the payload</field>
+        <field unit="s" type="float" name="timestamp">Payload computer seconds sice startup</field>
+        <field unit="%" type="uint8" name="used_memory">Percentage of used memory (RAM) of the payload computer rounded up to whole percent</field>
+        <field unit="%" type="uint8" name="used_disk">Percentage of used disk of the payload computer rounded up to whole percent</field>
+        <field values="UNKNOWN|CLOSE|OPEN" type="uint8" name="door_status">Payload door open/close</field>
+      </message>
+      <message name="CAMERA_SNAPSHOT_DL" link="forwarded" id="35">
+        <field type="uint16" name="camera_id">Unique camera ID - consists of make,model and camera index</field>
+        <field type="uint16" name="snapshot_image_number">Snapshot number in sequence</field>
+        <field values="UNKNOWN|OK|ERROR" type="uint8" name="camera_state">State of the given camera</field>
+        <field unit="bool" type="uint8" name="snapshot_valid">Flag checking whether the last snapshot was valid</field>
+        <field unit="deg_celsius" type="float" name="array_temp" format="%.2f">Imager sensor temperature, NaN if not measured</field>
+        <field unit="deg_celsius" type="float" name="lens_temp" format="%.2f">Lens temperature, NaN if not measured</field>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="GUIDED_SETPOINT_NED" link="forwarded" id="40">
+        <description>        Set vehicle position or velocity in NED.
+        Frame can be specified with the bits 0-3
+        Velocity of position setpoint can be specified with the bits 5-7
+        Flags field definition:
+        - bit 0: x,y as offset coordinates
+        - bit 1: x,y in body coordinates
+        - bit 2: z as offset coordinates
+        - bit 3: yaw as offset coordinates
+        - bit 4: free
+        - bit 5: x,y as vel
+        - bit 6: z as vel
+        - bit 7: yaw as rate</description>
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="flags">bits 0-3: frame, bits 5-7: use as velocity</field>
+        <field unit="m" type="float" name="x">X position/velocity in NED</field>
+        <field unit="m" type="float" name="y">Y position/velocity in NED</field>
+        <field unit="m" type="float" name="z">Z position/velocity in NED (negative altitude)</field>
+        <field unit="rad" type="float" name="yaw" alt_unit="deg">yaw/rate setpoint</field>
+      </message>
+      <message name="WINDTURBINE_STATUS" link="broadcasted" id="50">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="tb_id"/>
+        <field unit="ms" type="uint32" name="sync_itow"/>
+        <field unit="ms" type="uint32" name="cycle_time"/>
+      </message>
+      <message name="RC_3CH" link="broadcasted" id="51">
+        <field unit="byte_mask" type="uint8" name="throttle_mode"/>
+        <field type="int8" name="roll"/>
+        <field type="int8" name="pitch"/>
+      </message>
+      <message name="RC_4CH" link="broadcasted" id="52">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="mode"/>
+        <field type="uint8" name="throttle"/>
+        <field type="int8" name="roll"/>
+        <field type="int8" name="pitch"/>
+        <field type="int8" name="yaw"/>
+      </message>
+      <message name="RC_5CH" link="broadcasted" id="53">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="throttle"/>
+        <field type="int8" name="roll"/>
+        <field type="int8" name="pitch"/>
+        <field type="int8" name="yaw"/>
+        <field type="int8" name="mode"/>
+        <field type="int8" name="kill"/>
+      </message>
+      <message name="REMOTE_GPS_SMALL" link="forwarded" id="54">
+        <field unit="1e4rad" type="int16" name="heading" alt_unit_coef="0.0057296" alt_unit="deg"/>
+        <field type="uint32" name="pos_xyz">bits 31-21 east position [cm] : bits 20-10 north position [cm] : bits 9-0 up position [cm]</field>
+        <field type="uint32" name="speed_xyz">bits 31-21 east speed [cm/s] : bits 20-10 north speed [cm/s] : bits 9-0 climb speed [cm/s]</field>
+        <field unit="ms" type="uint32" name="tow" alt_unit_coef="0.001" alt_unit="s"/>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="REMOTE_GPS" link="forwarded" id="55">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="numsv"/>
+        <field unit="cm" type="int32" name="ecef_x" alt_unit="m"/>
+        <field unit="cm" type="int32" name="ecef_y" alt_unit="m"/>
+        <field unit="cm" type="int32" name="ecef_z" alt_unit="m"/>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">Height above WGS84 reference ellipsoid</field>
+        <field unit="mm" type="int32" name="hmsl" alt_unit="m">Height above Mean Sea Level (geoid)</field>
+        <field unit="cm/s" type="int32" name="ecef_xd" alt_unit="m/s"/>
+        <field unit="cm/s" type="int32" name="ecef_yd" alt_unit="m/s"/>
+        <field unit="cm/s" type="int32" name="ecef_zd" alt_unit="m/s"/>
+        <field type="uint32" name="tow"/>
+        <field type="int32" name="course" alt_unit_coef="0.0000057296" alt_unit="deg"/>
+      </message>
+      <message name="KITE_COMMAND" id="96">
+        <field type="uint16" name="POWER"/>
+        <field type="uint16" name="TURN"/>
+      </message>
+      <message name="PAYLOAD_COMMAND" link="forwarded" id="97">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8[]" name="command"/>
+      </message>
+      <message name="SET_ACTUATOR" link="forwarded" id="100">
+        <field type="uint16" name="value"/>
+        <field type="uint8" name="no"/>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="CSC_SERVO_CMD" id="101">
+        <field type="uint16" name="servo_1"/>
+        <field type="uint16" name="servo_2"/>
+        <field type="uint16" name="servo_3"/>
+        <field type="uint16" name="servo_4"/>
+      </message>
+      <message name="BOOZ2_FMS_COMMAND" link="forwarded" id="149">
+        <field values="KILL|RATE|ATTITUDE|HOVER|NAV" type="uint8" name="h_mode"/>
+        <field values="KILL|DIRECT|CLIMB_RC|CLIMB|ALT|NAV" type="uint8" name="v_mode"/>
+        <field type="int32" name="v_sp"/>
+        <field type="int32" name="h_sp_1"/>
+        <field type="int32" name="h_sp_2"/>
+        <field type="int32" name="h_sp_3"/>
+        <field type="uint8" name="ac_id"/>
+      </message>
+      <message name="BOOZ_NAV_STICK" link="forwarded" id="150">
+        <field type="uint8" name="ac_id"/>
+        <field type="int8" name="vx_sp"/>
+        <field type="int8" name="vy_sp"/>
+        <field type="int8" name="vz_sp"/>
+        <field type="int8" name="r_sp"/>
+      </message>
+      <message name="EXTERNAL_FILTER_SOLUTION" link="forwarded" id="151">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="status"/>
+        <field unit="m" type="float" name="x"/>
+        <field unit="m" type="float" name="xd"/>
+        <field unit="m" type="float" name="y"/>
+        <field unit="m" type="float" name="yd"/>
+      </message>
+      <message name="ROTORCRAFT_CAM_STICK" link="forwarded" id="152">
+        <field type="uint8" name="ac_id"/>
+        <field type="int8" name="tilt"/>
+        <field type="int8" name="pan"/>
+      </message>
+      <message name="GPS_INJECT" link="forwarded" id="153">
+        <field type="uint8" name="ac_id"/>
+        <field type="uint8" name="packet_id"/>
+        <field type="uint8[]" name="data"/>
+      </message>
+      <message name="EXTERNAL_MAG_RAW" link="forwarded" id="154">
+        <field type="int16" name="x"/>
+        <field type="int16" name="y"/>
+        <field type="int16" name="z"/>
+      </message>
+      <message name="VIDEO_ROI" link="forwarded" id="155">
+        <field type="uint8" name="ac_id">The aircraft in which video stream you clicked </field>
+        <field type="int32" name="startx">The x of the upper left corner of the selected area</field>
+        <field type="int32" name="starty">The y of the upper left corner of the selected area </field>
+        <field type="int32" name="width">The width of the selected area </field>
+        <field type="int32" name="height">The height of the selected area </field>
+        <field type="int32" name="downsized_width">The width of the image you received. Added because a module the receives this message does not know how big the image was that was broadcasted </field>
+      </message>
+      <message name="EMERGENCY_CMD" link="forwarded" id="156">
+        <description>Overcome setting ID and block ID problems in the case of multiboard autopilots like AP/FBW. With this message a KILL command can be sent to AP and FBW at the same time.</description>
+        <field type="uint8" name="ac_id"/>
+        <field values="KILL|STANDBY|LAND" type="uint8" name="cmd"/>
+      </message>
+      <message name="RTCM_INJECT" link="broadcasted" id="157">
+        <field type="uint8" name="packet_id"/>
+        <field type="uint8[]" name="data"/>
+      </message>
+    </msg_class>
+    <msg_class name="ground">
+      <message name="NEW_AIRCRAFT" id="1">
+        <field type="string" name="ac_id"/>
+      </message>
+      <message name="AIRCRAFT_DIE" id="2">
+        <field type="string" name="ac_id"/>
+      </message>
+      <message name="AIRCRAFTS" id="3">
+        <field type="string" name="ac_list" format="csv"/>
+      </message>
+      <message name="AIRCRAFTS_REQ" id="4"/>
+      <message name="SELECTED" id="5">
+        <field type="string" name="aircraft_id"/>
+      </message>
+      <message name="SELECTED_REQ" id="6"/>
+      <message name="WIND_CLEAR" id="7">
+        <field type="string" name="ac_id"/>
+      </message>
+      <message name="WIND" id="8">
+        <field type="string" name="ac_id"/>
+        <field unit="deg_wind" type="float" name="dir"/>
+        <field unit="m/s" type="float" name="wspeed"/>
+        <field unit="m/s" type="float" name="mean_aspeed"/>
+        <field unit="m/s" type="float" name="stddev"/>
+      </message>
+      <message name="CONFIG_REQ" id="9">
+        <field type="string" name="ac_id"/>
+      </message>
+      <message name="CONFIG" id="10">
+        <field type="string" name="ac_id"/>
+        <field unit="url" type="string" name="flight_plan"/>
+        <field unit="url" type="string" name="airframe"/>
+        <field unit="url" type="string" name="radio"/>
+        <field unit="url" type="string" name="settings"/>
+        <field type="string" name="default_gui_color"/>
+        <field type="string" name="ac_name"/>
+      </message>
+      <message name="FLIGHT_PARAM" id="11">
+        <field type="string" name="ac_id"/>
+        <field unit="deg" type="float" name="roll"/>
+        <field unit="deg" type="float" name="pitch"/>
+        <field unit="deg" type="float" name="heading"/>
+        <field unit="deg" type="float" name="lat"/>
+        <field unit="deg" type="float" name="long"/>
+        <field unit="m/s" type="float" name="speed"/>
+        <field unit="deg" type="float" name="course" format="%.1f"/>
+        <field unit="m" type="float" name="alt"/>
+        <field unit="m/s" type="float" name="climb"/>
+        <field unit="m" type="float" name="agl"/>
+        <field unit="s (Unix time)" type="float" name="unix_time"/>
+        <field unit="ms" type="uint32" name="itow"/>
+        <field unit="m/s" type="float" name="airspeed"/>
+      </message>
+      <message name="AP_STATUS" id="12">
+        <field type="string" name="ac_id"/>
+        <field values="MANUAL|AUTO1|AUTO2|HOME|FAILSAFE" type="string" name="ap_mode"/>
+        <field values="MANUAL|ROLL_RATE|ROLL|COURSE" type="string" name="lat_mode"/>
+        <field values="WAYPOINT|ROUTE|CIRCLE" type="string" name="horiz_mode"/>
+        <field values="MANUAL|THROTTLE|CLIMB|ALT" type="string" name="gaz_mode"/>
+        <field values="NOFIX|NA|2D|3D|DGPS|RTK" type="string" name="gps_mode"/>
+        <field values="OFF|ON" type="string" name="kill_mode"/>
+        <field type="uint32" name="flight_time"/>
+        <field values="UNKNOWN|INIT|ALIGN|OK|GPS_LOST|IMU_LOST|COV_ERR|IR_CONTRAST|ERROR" type="string" name="state_filter_mode"/>
+      </message>
+      <message name="NAV_STATUS" id="13">
+        <field type="string" name="ac_id"/>
+        <field type="uint8" name="cur_block"/>
+        <field type="uint8" name="cur_stage"/>
+        <field type="uint32" name="block_time"/>
+        <field type="uint32" name="stage_time"/>
+        <field unit="deg" type="float" name="target_lat"/>
+        <field unit="deg" type="float" name="target_long"/>
+        <field unit="m/s" type="float" name="target_climb"/>
+        <field unit="m" type="float" name="target_alt"/>
+        <field unit="deg" type="float" name="target_course"/>
+        <field unit="m" type="float" name="dist_to_wp"/>
+      </message>
+      <message name="CAM_STATUS" id="14">
+        <field type="string" name="ac_id"/>
+        <field unit="deg" type="float" name="cam_lat"/>
+        <field unit="deg" type="float" name="cam_long"/>
+        <field unit="deg" type="float" name="cam_target_lat"/>
+        <field unit="deg" type="float" name="cam_target_long"/>
+      </message>
+      <message name="ENGINE_STATUS" id="15">
+        <field type="string" name="ac_id"/>
+        <field unit="%" type="float" name="throttle" format="%.1f"/>
+        <field type="float" name="throttle_accu" format="%.1f"/>
+        <field unit="rpm" type="float" name="rpm" format="%.1f"/>
+        <field unit="celcius" type="float" name="temp"/>
+        <field unit="V" type="float" name="bat"/>
+        <field unit="A" type="float" name="amp"/>
+        <field unit="Wh" type="uint16" name="energy"/>
+      </message>
+      <message name="SVSINFO" id="16">
+        <field type="string" name="ac_id"/>
+        <field unit="cm" type="uint16" name="pacc"/>
+        <field type="string" name="svid" format="csv"/>
+        <field type="string" name="flags" format="csv"/>
+        <field values="IDLE|SEARCH|SEARCH|UNUSABLE|CODELOCK|CARRIERLOCK|CARRIERLOCK|RECEIVING" type="string" name="qi" format="csv"/>
+        <field unit="dbHz" type="string" name="cno" format="csv"/>
+        <field unit="deg" type="string" name="elev" format="csv"/>
+        <field unit="deg" type="string" name="azim" format="csv"/>
+        <field unit="s" type="string" name="msg_age" format="csv"/>
+      </message>
+      <message name="FLY_BY_WIRE" id="17">
+        <field type="string" name="ac_id"/>
+        <field values="OK|LOST|REALLY_LOST" type="string" name="rc_status"/>
+        <field values="MANUAL|AUTO|FAILSAFE" type="string" name="rc_mode"/>
+        <field unit="Hz" type="uint8" name="rc_rate"/>
+      </message>
+      <message name="INFLIGH_CALIB" id="19">
+        <field type="string" name="ac_id"/>
+        <field values="OFF|DOWN|UP" type="string" name="if_mode"/>
+        <field type="float" name="if_value1"/>
+        <field type="float" name="if_value2"/>
+      </message>
+      <message name="WORLD_ENV" id="20">
+        <field unit="m/s" type="float" name="wind_east" format="%.1f"/>
+        <field unit="m/s" type="float" name="wind_north" format="%.1f"/>
+        <field unit="m/s" type="float" name="wind_up" format="%.1f"/>
+        <field type="float" name="ir_contrast"/>
+        <field type="float" name="time_scale"/>
+        <field values="OFF|ON" type="uint8" name="gps_availability"/>
+      </message>
+      <message name="WORLD_ENV_REQ" id="21">
+        <field unit="deg" type="float" name="lat"/>
+        <field unit="deg" type="float" name="long"/>
+        <field unit="m" type="float" name="alt"/>
+        <field unit="m" type="float" name="east"/>
+        <field unit="m" type="float" name="north"/>
+        <field unit="m" type="float" name="up"/>
+      </message>
+      <message name="CIRCLE_STATUS" id="22">
+        <field type="string" name="ac_id"/>
+        <field unit="deg" type="float" name="circle_lat"/>
+        <field unit="deg" type="float" name="circle_long"/>
+        <field unit="m" type="int16" name="radius"/>
+      </message>
+      <message name="SEGMENT_STATUS" id="23">
+        <field type="string" name="ac_id"/>
+        <field unit="deg" type="float" name="segment1_lat"/>
+        <field unit="deg" type="float" name="segment1_long"/>
+        <field unit="deg" type="float" name="segment2_lat"/>
+        <field unit="deg" type="float" name="segment2_long"/>
+      </message>
+      <message name="MOVE_WAYPOINT" id="24">
+        <field type="string" name="ac_id"/>
+        <field type="uint8" name="wp_id"/>
+        <field unit="deg" type="float" name="lat" format="%.7f"/>
+        <field unit="deg" type="float" name="long" format="%.7f"/>
+        <field unit="m" type="float" name="alt"/>
+      </message>
+      <message name="GET_DL_SETTING" id="25">
+        <field type="string" name="ac_id"/>
+        <field type="uint8" name="index"/>
+      </message>
+      <message name="DL_SETTING" id="26">
+        <field type="string" name="ac_id"/>
+        <field type="uint8" name="index"/>
+        <field type="float" name="value"/>
+      </message>
+      <message name="JUMP_TO_BLOCK" id="27">
+        <field type="string" name="ac_id"/>
+        <field type="uint8" name="block_id"/>
+      </message>
+      <message name="DL_VALUES" id="28">
+        <field type="string" name="ac_id"/>
+        <field type="string" name="values" format="csv"/>
+      </message>
+      <message name="RAW_DATALINK" id="29">
+        <field type="string" name="ac_id"/>
+        <field type="string" name="message" format=";sv"/>
+      </message>
+      <message name="WAYPOINT_MOVED" id="30">
+        <field type="string" name="ac_id"/>
+        <field type="uint8" name="wp_id"/>
+        <field unit="deg" type="float" name="lat" format="%.7f"/>
+        <field unit="deg" type="float" name="long" format="%.7f"/>
+        <field unit="m" type="float" name="alt"/>
+        <field unit="m" type="float" name="ground_alt"/>
+      </message>
+      <message name="SURVEY_STATUS" id="31">
+        <field type="string" name="ac_id"/>
+        <field unit="deg" type="float" name="east_long"/>
+        <field unit="deg" type="float" name="north_lat"/>
+        <field unit="deg" type="float" name="west_long"/>
+        <field unit="deg" type="float" name="south_lat"/>
+      </message>
+      <message name="TELEMETRY_STATUS" id="32">
+        <description>        Datalink status reported by Server for the GCS
+        Combines DATLINK_REPORT (telemetry class) and LINK_REPORT (ground class)</description>
+        <field type="string" name="ac_id"/>
+        <field type="string" name="link_id"/>
+        <field unit="s" type="float" name="time_since_last_msg"/>
+        <field type="uint32" name="rx_bytes"/>
+        <field type="uint32" name="rx_msgs"/>
+        <field unit="bytes/s" type="float" name="rx_bytes_rate" format="%.1f"/>
+        <field type="uint32" name="tx_msgs"/>
+        <field unit="s" type="uint32" name="uplink_lost_time"/>
+        <field type="uint16" name="uplink_msgs"/>
+        <field type="uint16" name="downlink_msgs"/>
+        <field unit="bytes/s" type="uint16" name="downlink_rate"/>
+        <field unit="ms" type="float" name="ping_time" format="%.2f"/>
+      </message>
+      <message name="TELEMETRY_ERROR" id="33">
+        <description>Report a telemetry error</description>
+        <field type="string" name="ac_id"/>
+        <field type="string" name="message"/>
+      </message>
+      <message name="TELEMETRY_MESSAGE" id="34">
+        <description>Encapsulated a telemetry class message (when using redundant link)</description>
+        <field type="string" name="ac_id"/>
+        <field type="string" name="link_id"/>
+        <field type="string" name="message" format=";sv"/>
+      </message>
+      <message name="DATALINK_MESSAGE" id="35">
+        <description>Encapsulated a datalink class message (when using redundant link)</description>
+        <field type="string" name="ac_id"/>
+        <field type="string" name="link_id"/>
+        <field type="string" name="message" format=";sv"/>
+      </message>
+      <message name="LINK_REPORT" id="36">
+        <description>Datalink status reported by Link for the Server</description>
+        <field type="string" name="ac_id"/>
+        <field type="string" name="link_id"/>
+        <field unit="s" type="uint32" name="run_time"/>
+        <field unit="s" type="uint32" name="rx_lost_time"/>
+        <field type="uint32" name="rx_bytes"/>
+        <field type="uint32" name="rx_msgs"/>
+        <field type="uint32" name="rx_err"/>
+        <field unit="bytes/s" type="float" name="rx_bytes_rate" format="%.1f"/>
+        <field unit="msgs/s" type="float" name="rx_msgs_rate" format="%.1f"/>
+        <field type="uint32" name="tx_msgs"/>
+        <field unit="ms" type="float" name="ping_time" format="%.2f"/>
+      </message>
+      <message name="INTRUDER" id="37">
+        <field type="string" name="id"/>
+        <field type="string" name="name"/>
+        <field unit="1e7deg" type="int32" name="lat" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32" name="lon" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">altitude above WGS84 reference ellipsoid</field>
+        <field unit="deg" type="float" name="course"/>
+        <field unit="m/s" type="float" name="speed"/>
+        <field unit="m/s" type="float" name="climb"/>
+        <field unit="ms" type="uint32" name="itow"/>
+      </message>
+      <message name="SHAPE" id="38">
+        <description>      The SHAPE message used to draw shapes onto the Paparazzi GCS.
+      Field name shape is used to define the type of shape i.e. Circle, Polygon, Line, or Text.
+      This is indexed from 0-3 respectively.
+      Each shape drawn must have an id number associated with it.
+      This id number in conjuction with the shapetype will be needed to update or delete the shape.
+      A circle can be defined with the same id as a polygon but since they have different shape types they are considered unique.
+      linecolor and fillcolor take in a color string ie: &quot;red&quot;, &quot;blue&quot;
+      opacity will change the level of transparency of the fill.
+      0 - Transparent
+      1 - Light Fill
+      2 - Medium Fill
+      3 - Opaque
+      Passing a status of 0 will create or update the shape specified by id and type.
+      Passing a status of 1 will delete the shape specified by id and type.
+      latarr is an array of coordinates that contain the latitude coordinate for each point in the shape.
+      The array is comma separated.
+      lonarr is similar to latarr but contain the longitude coordinate for each point in the shape.
+      Circle and Text type will take the first coordinates given to place the shape.
+      Polygon will take all the coordinates given.
+      Line will take the first two coordinates given.
+      Radius is only used for the circle.
+      Text will always be populated with each message using the first set of coordinates.
+      The text field can not be blank or have spaces.
+      If text is not desired for a shape then pass &quot;NULL&quot; into the text field.</description>
+        <field type="uint8" name="id"/>
+        <field type="string" name="linecolor"/>
+        <field type="string" name="fillcolor"/>
+        <field values="Transparent|Light|Medium|Opaque" type="uint8" name="opacity"/>
+        <field values="Circle|Polygon|Line" type="uint8" name="shape"/>
+        <field values="create|delete" type="uint8" name="status"/>
+        <field unit="1e7deg" type="int32[]" name="latarr" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="1e7deg" type="int32[]" name="lonarr" alt_unit_coef="0.0000001" alt_unit="deg"/>
+        <field unit="m" type="float" name="radius"/>
+        <field type="string" name="text"/>
+      </message>
+      <message name="DL_EMERGENCY_CMD" id="39">
+        <field type="string" name="ac_id"/>
+        <field values="KILL|STANDBY|LAND" type="uint8" name="cmd"/>
+      </message>
+      <message name="PLUMES" id="100">
+        <field type="string" name="ids" format="csv"/>
+        <field type="string" name="lats" format="csv"/>
+        <field type="string" name="longs" format="csv"/>
+        <field type="string" name="values" format="csv"/>
+      </message>
+    </msg_class>
+    <msg_class name="alert">
+      <message name="BAT_LOW" id="1">
+        <field type="string" name="ac_id"/>
+        <field values="CATASTROPHIC|CRITIC|WARNING" type="string" name="level"/>
+        <field type="float" name="value"/>
+      </message>
+      <message name="AIR_PROX" id="2">
+        <field type="string" name="ac_id"/>
+        <field values="CATASTROPHIC|CRITIC|WARNING" type="string" name="level"/>
+      </message>
+    </msg_class>
+    <msg_class name="intermcu" id="2">
+      <message name="IMCU_COMMANDS" id="1">
+        <field type="uint8" name="status"/>
+        <field type="int16[]" name="values"/>
+      </message>
+      <message name="IMCU_RADIO_COMMANDS" id="2">
+        <field type="uint8" name="status"/>
+        <field type="int16[]" name="values"/>
+      </message>
+      <message name="IMCU_SPEKTRUM_SOFT_BIND" id="3"/>
+      <message name="IMCU_FBW_STATUS" id="4">
+        <field values="MANUAL|AUTO|FAILSAFE" type="uint8" name="mode"/>
+        <field values="OK|LOST|REALLY_LOST" type="uint8" name="rc_status"/>
+        <field unit="Hz" type="uint8" name="frame_rate"/>
+        <field unit="decivolt" type="uint16" name="vsupply"/>
+        <field unit="mA" type="int32" name="current"/>
+      </message>
+      <message name="IMCU_REMOTE_MAG" id="10">
+        <field type="int16" name="mag_x">RAW Magnetometer Data</field>
+        <field type="int16" name="mag_y"/>
+        <field type="int16" name="mag_z"/>
+      </message>
+      <message name="IMCU_REMOTE_BARO" id="11">
+        <field unit="Pa" type="float" name="pitot_stat">Static Barometric Pressure in Pascal</field>
+        <field unit="C" type="float" name="pitot_temp">Pressure Sensor Temperature</field>
+      </message>
+      <message name="IMCU_REMOTE_AIRSPEED" id="12">
+        <field unit="m/s" type="float" name="pitot_IAS">Indicated Airspeed</field>
+      </message>
+      <message name="IMCU_REMOTE_GROUND" id="15">
+        <field values="SWITCH|SONAR|LASER|INFRARED" type="uint8" name="mode"/>
+        <field type="uint8" name="id">Sensor ID</field>
+        <field unit="cm" type="uint16" name="range"/>
+      </message>
+      <message name="IMCU_REMOTE_GPS" id="62">
+        <field unit="cm" type="int32" name="ecef_x" alt_unit="m"/>
+        <field unit="cm" type="int32" name="ecef_y" alt_unit="m"/>
+        <field unit="cm" type="int32" name="ecef_z" alt_unit="m"/>
+        <field unit="mm" type="int32" name="alt" alt_unit="m">altitude above WGS84 reference ellipsoid</field>
+        <field unit="mm" type="int32" name="hmsl" alt_unit="m">height above mean sea level (geoid)</field>
+        <field unit="cm/s" type="int32" name="ecef_xd" alt_unit="m/s"/>
+        <field unit="cm/s" type="int32" name="ecef_yd" alt_unit="m/s"/>
+        <field unit="cm/s" type="int32" name="ecef_zd" alt_unit="m/s"/>
+        <field type="int32" name="course" alt_unit_coef="0.0000001" alt_unit="rad"/>
+        <field unit="cm/s" type="uint16" name="gspeed" alt_unit="m/s"/>
+        <field unit="cm" type="uint32" name="pacc" alt_unit="m"/>
+        <field unit="cm/s" type="uint32" name="sacc" alt_unit="m/s"/>
+        <field type="uint8" name="numsv"/>
+        <field values="NONE|NA|2D|3D|DGPS|RTK" type="uint8" name="fix"/>
+      </message>
+      <message name="IMCU_DATALINK" id="113">
+        <description>Forward FBW datalink to AP</description>
+        <field type="uint8[]" name="msg"/>
+      </message>
+      <message name="IMCU_TELEMETRY" id="114">
+        <field type="uint8" name="msg_id"/>
+        <field type="uint8[]" name="msg"/>
+      </message>
+      <message name="IMCU_DEBUG" id="115">
+        <field type="uint8[]" name="msg"/>
+      </message>
+      <message name="IMCU_PAYLOAD" id="116">
+        <field type="uint8[]" name="data"/>
+      </message>
+    </msg_class>
+  </protocol>
+</configuration>
