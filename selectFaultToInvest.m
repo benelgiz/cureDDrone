@@ -59,7 +59,7 @@ nominal_label(:) = {'nominal'};
 fault_label = cell(length(gyro_fault_cond),1);
 fault_label(:) = {'fault'};
 label = [nominal_label; fault_label];
-outputVector = label;
+output_vector = label;
 
 % Figures to visualize data
 feature = [accel_nominal_cond;accel_fault_cond];

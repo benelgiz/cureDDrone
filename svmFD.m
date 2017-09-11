@@ -23,19 +23,10 @@
 classNum = 2;
 
 %% Arrange data
+feature_vec = feature_vector;
+output_vec = output_vector;
+
 % training set (around %70 percent of whole data set)
-
-feature_vec = [sensor_sim_out_normal'; sensor_sim_out_fault'];
-
-% normal = repmat('normal', length(sensor_sim_out_normal'), 1);
-% normal = cellstr(normal);
-% fault = repmat('fault', length(sensor_sim_out_fault'), 1);
-% fault = cellstr(fault);
-% output_vec = vertcat(normal, fault);
-
-normal(1:length(sensor_sim_out_normal'), 1) = 1;
-fault(1:length(sensor_sim_out_fault'), 1) = 2;
-output_vec = [normal;fault];
 
 trainingDataExNum = ceil(70 / 100 * (length(feature_vec)));
 
@@ -65,8 +56,8 @@ sv = SVMModel.SupportVectors;
 figure
 gscatter(feature_vec_training(:,1),feature_vec_training(:,2),output_vec_training)
 hold on
-% plot(sv(:,1),sv(:,2),'ko','MarkerSize',10)
-% legend('normal','fault','Support Vector')
+plot(sv(:,1),sv(:,2),'ko','MarkerSize',10)
+legend('normal','fault','Support Vector')
 legend('normal','fault')
 hold off
 set(legend,'FontSize',11);
