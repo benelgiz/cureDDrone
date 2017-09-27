@@ -70,6 +70,51 @@ sv = SVMModel.SupportVectors;
 ScoreSVMModel = fitPosterior(SVMModel);
 [~,postProbability] = predict(ScoreSVMModel,feature_vec_test);
 
+%% TUNING THE SVM CLASSIFIER
+
+% SVMModelTune is a trained ClassificationSVM classifier 
+% By passing 'KernelScale','auto' the software utilizes a heuristic
+% approach to select kernel scale
+SVMModelTune = fitcsvm(feature_vec_training,output_vec_training, 'KernelFunction','rbf', 'KernelScale','auto','Standardize',true,'ClassNames',{'nominal','fault'});
+
+% 10-fold cross validation on the training data
+% inputs : trained SVM classifier (which also stores the training data)
+% outputs : cross-validated (partitioned) SVM classifier from a trained SVM
+% classifier
+
+% CVSVMModelTune is a ClassificationPartitionedModel cross-validated classifier.
+% ClassificationPartitionedModel is a set of classification models trained 
+% on cross-validated folds.
+CVSVMModelTune = crossval(SVMModelTune);
+
+% To assess predictive performance of SVMModelTune on cross-validated data 
+% "kfold" methods and properties of CVSVMModelTune, such as kfoldLoss is used
+
+% Evaluate 10-fold cross-validation error.
+% (Estimate the out-of-sample misclassification rate.)
+crossValClassificErrTuning = kfoldLoss(CVSVMModelTune);
+
+% Adjusting the Box Constraint and Kernel Scale
+
+% Tuning using Bayesian Optimization
+cFold = cvpartition(length(feature_vec_training),'KFold',10);
+sigma = optimizableVariable('sigma',[1e-5,1e5],'Transform','log');
+box = optimizableVariable('box',[1e-5,1e5],'Transform','log');
+
+minfn = @(z)kfoldLoss(fitcsvm(feature_vec_training,output_vec_training,'CVPartition',cFold,...
+    'KernelFunction','rbf','BoxConstraint',z.box,...
+    'KernelScale',z.sigma));
+
+results = bayesopt(minfn,[sigma,box],'IsObjectiveDeterministic',true,...
+    'AcquisitionFunctionName','expected-improvement-plus')
+
+z(1) = results.XAtMinObjective.sigma;
+z(2) = results.XAtMinObjective.box;
+SVMModelTuned = fitcsvm(feature_vec_training,output_vec_training,'KernelFunction','rbf',...
+    'KernelScale',z(1),'BoxConstraint',z(2));
+[labelTuned,scoreTuned] = predict(SVMModelTuned,feature_vec_test);
+
+
 %% CROSS VALIDATION
 % 10-fold cross validation on the training data
 % inputs : trained SVM classifier (which also stores the training data)
