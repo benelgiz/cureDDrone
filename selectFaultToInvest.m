@@ -1,4 +1,25 @@
-% Selection of fault
+% Copyright 2017 Elgiz Baskaya
+
+% This file is part of cureDDrone.
+
+% cureDDrone is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% curedRone is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with curedRone.  If not, see <http://www.gnu.org/licenses/>.
+
+% FAULT DETECTION VIA SVM
+% This code assumes that you already have a data set of normal and faulty 
+% situation sensor outputs.
+
+%% FAULT SELECTION
 % to check available fault indexes (the index when they are set by
 % operator) setdiff(settings_index,set_nominal)
 % and their corresponding start_index end_index, check fault_start_stop
@@ -54,16 +75,43 @@ feature_vector = [accel_nominal_cond gyro_nominal_cond; accel_fault_cond gyro_fa
 t_features = [t_accel_nominal_cond; t_accel_fault_cond];
 % Assuming same number of gyro and accelerometer data
 % Labelling data
-nominal_label = cell(length(gyro_nominal_cond),1);
-nominal_label(:) = {'nominal'};
-fault_label = cell(length(gyro_fault_cond),1);
-fault_label(:) = {'fault'};
-label = [nominal_label; fault_label];
-output_vector = label;
+
+% nominal_label = cell(length(gyro_nominal_cond),1);
+% nominal_label(:) = {'nominal'};
+% fault_label = cell(length(gyro_fault_cond),1);
+% fault_label(:) = {'fault'};
+% label = [nominal_label; fault_label];
+% output_vector = label;
+
+nominal_label = zeros(length(gyro_nominal_cond),1);
+fault_label = ones(length(gyro_fault_cond),1);
+output_vector = [nominal_label; fault_label];
+
+%% ADD FEATURES OF CONSEQUENT MEASUREMENTS
+
+% Number of next (and previous) measurements to add to the feature vector : N
+feature_vector_original = feature_vector;
+clear feature_vector;
+N = 3;
+[row,col] = size(feature_vector_original);
+
+addedFeat = zeros(row, 2 * N + 1);
+% feature_vector = zeros()
+
+for i = 1 : col
+    addedFeat = addFeaturesConseq(feature_vector_original(:,i),N);
+    feature_vector(:,((i-1)*(2*N+1)+1):((i-1)*(2*N+1)+1+2*N)) = addedFeat;
+%     if i == 1
+%         feature_vector = addedFeat;
+%     else
+%         feature_vector = [feature_vector addedFeat];
+%     end
+end
+
 
 % Figures to visualize data
-feature = [accel_nominal_cond;accel_fault_cond];
-gscatter(feature(:,1),feature(:,3),label)
+% feature = [accel_nominal_cond;accel_fault_cond];
+gscatter(feature_vector(:,1),feature_vector(:,3),output_vector,'gr')
 legend('normal','fault')
 set(legend,'FontSize',11);
 xlabel({'$a_x$'},...
@@ -76,4 +124,4 @@ ylabel({'$a_y$'},...
 'interpreter','latex',...
 'FontSize',15,...
 'FontName','Times')
-print -depsc2 feat1vsfeat2.eps
+print -depsc2 feat1vsfeat3.eps

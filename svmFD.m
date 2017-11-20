@@ -19,101 +19,14 @@
 % This code assumes that you already have a data set of normal and faulty 
 % situation sensor outputs.
 
-
-%% Arrange training/test sets
-
-feature_vec = feature_vector;
-output_vec = output_vector;
-
-% training set (around %80 percent of whole data set)
-trainingDataExNum = ceil(80 / 100 * (length(feature_vec)));
-
-% Select %80 of data for training and leave the rest for testing
-randomSelectionColoumnNum = randperm(length(feature_vec),trainingDataExNum);
-
-% Training set for feature and output
-% feature_vec_training .:. feature matrix for training
-% output_vec_training .:. output vector for training
-feature_vec_training = feature_vec(randomSelectionColoumnNum, :);
-output_vec_training = output_vec(randomSelectionColoumnNum, :);
-
-% Test set for feature and output
-feature_vec_test = feature_vec;
-feature_vec_test(randomSelectionColoumnNum, :) = [];
-
-output_vec_test = output_vec;
-output_vec_test(randomSelectionColoumnNum, :) = [];
-
-test_set_time = t_features;
-test_set_time(randomSelectionColoumnNum) = [];
-
 %% TRAINING PHASE
-
 tic
 % SVMModel is a trained ClassificationSVM classifier.
-SVMModel = fitcsvm(feature_vec_training,output_vec_training, 'KernelFunction','rbf','Standardize',true,'ClassNames',{'nominal','fault'});
+SVMModel = fitcsvm(feature_vec_training,output_vec_training, 'KernelFunction','rbf','Standardize',true,'ClassNames',{'0','1'});
 toc
 
 % Support vectors
 sv = SVMModel.SupportVectors;
-
-%% FIT POSTERIOR PROBABILITES fitPosterior(SVMModel) / fitSVMPosterior(CVSVMModel)
-% "The transformation function computes the posterior probability 
-% that an observation is classified into the positive class (SVMModel.Classnames(2)).
-% The software fits the appropriate score-to-posterior-probability 
-% transformation function using the SVM classifier SVMModel, and 
-% by conducting 10-fold cross validation using the stored predictor data (SVMModel.X) 
-% and the class labels (SVMModel.Y) as outlined in REF : Platt, J. 
-% "Probabilistic outputs for support vector machines and comparisons 
-% to regularized likelihood methods". In: Advances in Large Margin Classifiers. 
-% Cambridge, MA: The MIT Press, 2000, pp. 61-74"
-ScoreSVMModel = fitPosterior(SVMModel);
-[~,postProbability] = predict(ScoreSVMModel,feature_vec_test);
-
-%% TUNING THE SVM CLASSIFIER
-
-% SVMModelTune is a trained ClassificationSVM classifier 
-% By passing 'KernelScale','auto' the software utilizes a heuristic
-% approach to select kernel scale
-SVMModelTune = fitcsvm(feature_vec_training,output_vec_training, 'KernelFunction','rbf', 'KernelScale','auto','Standardize',true,'ClassNames',{'nominal','fault'});
-
-% 10-fold cross validation on the training data
-% inputs : trained SVM classifier (which also stores the training data)
-% outputs : cross-validated (partitioned) SVM classifier from a trained SVM
-% classifier
-
-% CVSVMModelTune is a ClassificationPartitionedModel cross-validated classifier.
-% ClassificationPartitionedModel is a set of classification models trained 
-% on cross-validated folds.
-CVSVMModelTune = crossval(SVMModelTune);
-
-% To assess predictive performance of SVMModelTune on cross-validated data 
-% "kfold" methods and properties of CVSVMModelTune, such as kfoldLoss is used
-
-% Evaluate 10-fold cross-validation error.
-% (Estimate the out-of-sample misclassification rate.)
-crossValClassificErrTuning = kfoldLoss(CVSVMModelTune);
-
-% Adjusting the Box Constraint and Kernel Scale
-
-% Tuning using Bayesian Optimization
-cFold = cvpartition(length(feature_vec_training),'KFold',10);
-sigma = optimizableVariable('sigma',[1e-5,1e5],'Transform','log');
-box = optimizableVariable('box',[1e-5,1e5],'Transform','log');
-
-minfn = @(z)kfoldLoss(fitcsvm(feature_vec_training,output_vec_training,'CVPartition',cFold,...
-    'KernelFunction','rbf','BoxConstraint',z.box,...
-    'KernelScale',z.sigma));
-
-results = bayesopt(minfn,[sigma,box],'IsObjectiveDeterministic',true,...
-    'AcquisitionFunctionName','expected-improvement-plus')
-
-z(1) = results.XAtMinObjective.sigma;
-z(2) = results.XAtMinObjective.box;
-SVMModelTuned = fitcsvm(feature_vec_training,output_vec_training,'KernelFunction','rbf',...
-    'KernelScale',z(1),'BoxConstraint',z(2));
-[labelTuned,scoreTuned] = predict(SVMModelTuned,feature_vec_test);
-
 
 %% CROSS VALIDATION
 % 10-fold cross validation on the training data
@@ -124,9 +37,8 @@ SVMModelTuned = fitcsvm(feature_vec_training,output_vec_training,'KernelFunction
 % CVSVMModel is a ClassificationPartitionedModel cross-validated classifier.
 % ClassificationPartitionedModel is a set of classification models trained 
 % on cross-validated folds.
-CVSVMModel = crossval(SVMModel);
 
-% Assess performance of classification via Matlab tools
+CVSVMModel = crossval(SVMModel,'CVPartition',cFold);
 
 % To assess predictive performance of SVMModel on cross-validated data 
 % "kfold" methods and properties of CVSVMModel, such as kfoldLoss is used
@@ -137,19 +49,45 @@ crossValClassificErr = kfoldLoss(CVSVMModel);
 
 % Predict response for observations not used for training
 % Estimate cross-validation predicted labels and scores.
-[elabel,escore] = kfoldPredict(CVSVMModel);
+[elabelUntuned,escoreUntuned] = kfoldPredict(CVSVMModel);
 
-max(escore)
-min(escore)
+max(escoreUntuned)
+min(escoreUntuned)
 
 % FIT POSTERIOR PROBABILITES fitPosterior(SVMModel) / fitSVMPosterior(CVSVMModel)
-[ScoreCVSVMModel,ScoreParameters] = fitSVMPosterior(CVSVMModel);
+% [ScoreCVSVMModel,ScoreParameters] = fitSVMPosterior(CVSVMModel);
 % Predict does not work here?
 
-%% Assess performance of classification via confusion matrix
 
+%% PREDICTION PHASE
 
+[labelUntuned,scoreUntuned] = predict(SVMModel,feature_vec_test);
 
+% %% FIT POSTERIOR PROBABILITES fitPosterior(SVMModel) / fitSVMPosterior(CVSVMModel)
+% % "The transformation function computes the posterior probability 
+% % that an observation is classified into the positive class (SVMModel.Classnames(2)).
+% % The software fits the appropriate score-to-posterior-probability 
+% % transformation function using the SVM classifier SVMModel, and 
+% % by conducting 10-fold cross validation using the stored predictor data (SVMModel.X) 
+% % and the class labels (SVMModel.Y) as outlined in REF : Platt, J. 
+% % "Probabilistic outputs for support vector machines and comparisons 
+% % to regularized likelihood methods". In: Advances in Large Margin Classifiers. 
+% % Cambridge, MA: The MIT Press, 2000, pp. 61-74"
+% ScoreSVMModel = fitPosterior(SVMModel);
+% [~,postProbability] = predict(ScoreSVMModel,feature_vec_test);
+
+%% EVALUATING THE PERFORMANCE OF CLASSIFICATION WITH NEW DATA
+
+% Evaluating the prediction performance of classification via
+% CompactClassificationSVM class methods (e.g compareHoldout, edge, loss, margin, 
+% predict)
+
+eUntuned = edge(SVMModel, feature_vec_test, output_vec_test);
+mUntuned = margin(SVMModel, feature_vec_test, output_vec_test);
+
+% Evaluating the prediction performance of classification via confusion matrix
+
+[f1scoreUntuned, precisionUntuned, recallUntuned] = calcF1score(output_vec_test, str2double(labelUntuned));
 %% Plot results
 figure
 gscatter(feature_vec_training(:,1),feature_vec_training(:,2),output_vec_training)
@@ -170,10 +108,7 @@ ylabel({'$a_y$'},...
 'FontSize',15,...
 'FontName','Times')
 print -depsc2 feat1vsfeat2.eps
-%% PREDICTION PHASE
 
-e = edge(SVMModel, feature_vec_test, output_vec_test);
-m = margin(SVMModel, feature_vec_test, output_vec_test);
-[label,score] = predict(SVMModel,feature_vec_test);
+
 
 
