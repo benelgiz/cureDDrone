@@ -96,7 +96,6 @@ N = 3;
 [row,col] = size(feature_vector_original);
 
 addedFeat = zeros(row, 2 * N + 1);
-% feature_vector = zeros()
 
 for i = 1 : col
     addedFeat = addFeaturesConseq(feature_vector_original(:,i),N);
