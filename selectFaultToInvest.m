@@ -98,7 +98,7 @@ N = 3;
 addedFeat = zeros(row, 2 * N + 1);
 
 for i = 1 : col
-    addedFeat = addFeaturesConseq(feature_vector_original(:,i),N);
+    addedFeat = addFeaturesBeforeAfter(feature_vector_original(:,i),N);
     feature_vector(:,((i-1)*(2*N+1)+1):((i-1)*(2*N+1)+1+2*N)) = addedFeat;
 %     if i == 1
 %         feature_vector = addedFeat;

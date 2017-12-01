@@ -50,7 +50,7 @@
 %     .       ...         .        .        .         .         .     ...     .
 % v_(m-N)     ...     v_(m-2)   v_(m-1)    v_m     v_(m+1)   v_(m+2)  ...    v_(m+N)
 
-function [vNew] = addFeaturesConseq(v,N) 
+function [vNew] = addFeaturesBeforeAfter(v,N) 
 
 N = N + 1;
 v_a = v;
