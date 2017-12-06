@@ -95,11 +95,16 @@ clear feature_vector;
 N = 3;
 [row,col] = size(feature_vector_original);
 
-addedFeat = zeros(row, 2 * N + 1);
+addedFeat = zeros(row, N + 1);
 
 for i = 1 : col
-    addedFeat = addFeaturesBeforeAfter(feature_vector_original(:,i),N);
-    feature_vector(:,((i-1)*(2*N+1)+1):((i-1)*(2*N+1)+1+2*N)) = addedFeat;
+    addedFeat = addFeaturesBefore(feature_vector_original(:,i),N);
+    
+    % If features added both before and after the current time measurement
+    feature_vector(:,((i-1)*(N+1)+1):((i-1)*(N+1)+1+N)) = addedFeat;
+    
+    % If features added both before and after the current time measurement
+    % feature_vector(:,((i-1)*(2*N+1)+1):((i-1)*(2*N+1)+1+2*N)) = addedFeat;
 %     if i == 1
 %         feature_vector = addedFeat;
 %     else
