@@ -98,20 +98,14 @@ N = 3;
 addedFeat = zeros(row, N + 1);
 
 for i = 1 : col
+    % If features added before the current time measurement
     addedFeat = addFeaturesBefore(feature_vector_original(:,i),N);
-    
-    % If features added both before and after the current time measurement
     feature_vector(:,((i-1)*(N+1)+1):((i-1)*(N+1)+1+N)) = addedFeat;
     
-    % If features added both before and after the current time measurement
-    % feature_vector(:,((i-1)*(2*N+1)+1):((i-1)*(2*N+1)+1+2*N)) = addedFeat;
-%     if i == 1
-%         feature_vector = addedFeat;
-%     else
-%         feature_vector = [feature_vector addedFeat];
-%     end
+%     % If features added both before and after the current time measurement
+%     addedFeat = addFeaturesBeforeAfter(feature_vector_original(:,i),N);
+%     feature_vector(:,((i-1)*(2*N+1)+1):((i-1)*(2*N+1)+1+2*N)) = addedFeat;
 end
-
 
 % Figures to visualize data
 % feature = [accel_nominal_cond;accel_fault_cond];
