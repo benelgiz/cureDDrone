@@ -89,23 +89,23 @@ output_vector = [nominal_label; fault_label];
 
 %% ADD FEATURES OF CONSEQUENT MEASUREMENTS
 
-% Number of next (and previous) measurements to add to the feature vector : N
-feature_vector_original = feature_vector;
-clear feature_vector;
-N = 3;
-[row,col] = size(feature_vector_original);
+% % Number of next (and previous) measurements to add to the feature vector : N
+% feature_vector_original = feature_vector;
+% clear feature_vector;
+% N = 3;
+% [row,col] = size(feature_vector_original);
+% 
+% addedFeat = zeros(row, N + 1);
 
-addedFeat = zeros(row, N + 1);
-
-for i = 1 : col
-    % If features added before the current time measurement
-    addedFeat = addFeaturesBefore(feature_vector_original(:,i),N);
-    feature_vector(:,((i-1)*(N+1)+1):((i-1)*(N+1)+1+N)) = addedFeat;
-    
+% for i = 1 : col
+%     % If features added before the current time measurement
+%     addedFeat = addFeaturesBefore(feature_vector_original(:,i),N);
+%     feature_vector(:,((i-1)*(N+1)+1):((i-1)*(N+1)+1+N)) = addedFeat;
+%     
 %     % If features added both before and after the current time measurement
 %     addedFeat = addFeaturesBeforeAfter(feature_vector_original(:,i),N);
 %     feature_vector(:,((i-1)*(2*N+1)+1):((i-1)*(2*N+1)+1+2*N)) = addedFeat;
-end
+% end
 
 % Figures to visualize data
 % feature = [accel_nominal_cond;accel_fault_cond];

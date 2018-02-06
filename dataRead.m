@@ -25,7 +25,7 @@ N = length(dataArray{1, 1})-1;
 %%%%%%% This part from Elgiz %%%%%%%%%
 
 % Selecting the drone with whose data you want to work with
-index_drone_select = find(dataArray{1,2}==18);
+index_drone_select = find(dataArray{1,2}==52);
 drone_select_id = zeros(length(dataArray{1,1}),1);
 % Set indexes to 1s if it is the drone of interest
 drone_select_id(index_drone_select) = 1;
