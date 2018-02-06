@@ -117,9 +117,11 @@ num_fault_set = length(settings_index) - length(set_nominal);
 
 % Initialization fault_start_stop and nominal_start_stop vectors
 fault_start_stop = zeros(2, num_fault_set);
-nominal_start_stop = zeros(2, length(set_nominal)-1);
+% adding the intervals before any fault injected (after an certain altitude
+% to first fault anf after the last fault finishes to a certain altitude)
+nominal_start_stop = zeros(2, length(set_nominal) + 1);
 j = 1;
-k = 1;
+k = 2;
 for i = 1 : (length(settings_index) - 1)
     if ~any(set_nominal==settings_index(i))
         % fault_start_stop  rows : starting_index end_index
@@ -128,17 +130,24 @@ for i = 1 : (length(settings_index) - 1)
         fault_start_stop(1:2,j) = [settings_index(i) (settings_index(i + 1) - 1)]';
         j = j + 1;
         
-    else nominal_start_stop(1:2,k) = [settings_index(i) (settings_index(i + 1) - 1)]';
+    else
+        nominal_start_stop(1:2,k) = [settings_index(i) (settings_index(i + 1) - 1)]';
         k = k + 1;
     end
 end
+% Adding the nominal intervals starting from passing an altitude to the
+% first falut injected (at start of the flight) and starting after the last
+% fault finishes until it descents until the same altitude limit (at the 
+% end of the flight) 
+nominal_start_stop(1:2,1) = [first_altPass (fault_start_stop(1,1) - 1)]';
+nominal_start_stop(1:2,length(set_nominal) + 1) = [fault_start_stop(2,num_fault_set)+1 last_altPass]';
 
 %%%%%%%%%  Hello Ewoud %%%%%%%%%%
 % act_id = strcmp(dataArray{1,3},'ROTORCRAFT_CMD');
 % u_in(:,1) = dataArray{1, 4}(act_id);
 % u_in(:,2) = array_col_5(act_id);
 % u_in(:,3) = dataArray{1, 6}(act_id);
-% u_in(:,4) = dataArray{1, 7}(act_id);
+% u_in(:,4) = dataArray{1,  7}(act_id);
 % t_act = dataArray{1, 1}(act_id);
 % 
 % gps_id = strcmp(dataArray{1,3},'GPS_INT');
