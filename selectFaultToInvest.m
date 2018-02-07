@@ -26,7 +26,10 @@
 fault_id = zeros(length(dataArray{1,1}),1);
 % Select which fault interval you would like to investigate
 % fault_id(fault_start_stop(1,FAULT_NUM_YOU_WANTTO_SIMULATE):fault_start_stop(2,FAULT_NUM_YOU_WANTTO_SIMULATE)) = 1;
-fault_id(fault_start_stop(1,23):fault_start_stop(2,23)) = 1;
+% fault_id(fault_start_stop(1,23):fault_start_stop(2,23)) = 1;
+for i = 1 : length(fault_start_stop)
+    fault_id(fault_start_stop(1,i):fault_start_stop(2,i)) = 1;
+end
 
 gyro_fault_cond_id = fault_id & gyro_id_only;
 
@@ -50,7 +53,11 @@ t_accel_fault_cond = dataArray{1, 1}(accel_fault_cond_id);
 nominal_id = zeros(length(dataArray{1,1}),1);
 % Select which nominal phase interval you would like to investigate
 % nominal_id(nominal_start_stop(1,NOMINAL_COND_NUM_YOU_WANTTO_SIMULATE):nominal_start_stop(2,NOMINAL_COND_NUM_YOU_WANTTO_SIMULATE)) = 1;
-nominal_id(nominal_start_stop(1,4):nominal_start_stop(2,4)) = 1;
+% nominal_id(nominal_start_stop(1,4):nominal_start_stop(2,4)) = 1;
+for i = 1 : length(nominal_start_stop)
+    nominal_id(nominal_start_stop(1,i):nominal_start_stop(2,i)) = 1;
+end
+
 
 gyro_nominal_cond_id = nominal_id & gyro_id_only;
 
