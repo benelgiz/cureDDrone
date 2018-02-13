@@ -23,13 +23,21 @@
 % to check available fault indexes (the index when they are set by
 % operator) setdiff(settings_index,set_nominal)
 % and their corresponding start_index end_index, check fault_start_stop
+
 fault_id = zeros(length(dataArray{1,1}),1);
 % Select which fault interval you would like to investigate
 % fault_id(fault_start_stop(1,FAULT_NUM_YOU_WANTTO_SIMULATE):fault_start_stop(2,FAULT_NUM_YOU_WANTTO_SIMULATE)) = 1;
+
+% One surface stuck at zero fault
 % fault_id(fault_start_stop(1,23):fault_start_stop(2,23)) = 1;
-for i = 1 : length(fault_start_stop)
-    fault_id(fault_start_stop(1,i):fault_start_stop(2,i)) = 1;
-end
+
+% One surface loss if efficiency fault
+fault_id(fault_start_stop(1,1):fault_start_stop(2,1)) = 1;
+
+% All faulty phase indexes
+% for i = 1 : length(fault_start_stop)
+%     fault_id(fault_start_stop(1,i):fault_start_stop(2,i)) = 1;
+% end
 
 gyro_fault_cond_id = fault_id & gyro_id_only;
 
@@ -53,11 +61,17 @@ t_accel_fault_cond = dataArray{1, 1}(accel_fault_cond_id);
 nominal_id = zeros(length(dataArray{1,1}),1);
 % Select which nominal phase interval you would like to investigate
 % nominal_id(nominal_start_stop(1,NOMINAL_COND_NUM_YOU_WANTTO_SIMULATE):nominal_start_stop(2,NOMINAL_COND_NUM_YOU_WANTTO_SIMULATE)) = 1;
-% nominal_id(nominal_start_stop(1,4):nominal_start_stop(2,4)) = 1;
-for i = 1 : length(nominal_start_stop)
-    nominal_id(nominal_start_stop(1,i):nominal_start_stop(2,i)) = 1;
-end
 
+% One surface stuck at zero fault
+% nominal_id(nominal_start_stop(1,5):nominal_start_stop(2,5)) = 1;
+
+% One surface loss if efficiency fault
+nominal_id(nominal_start_stop(1,1):nominal_start_stop(2,1)) = 1;
+
+% All nominal phase indexes
+% for i = 1 : length(nominal_start_stop)
+%     nominal_id(nominal_start_stop(1,i):nominal_start_stop(2,i)) = 1;
+% end
 
 gyro_nominal_cond_id = nominal_id & gyro_id_only;
 
