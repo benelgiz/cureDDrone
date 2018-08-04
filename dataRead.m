@@ -3,7 +3,7 @@
 
 
 %%%%%%% This part from Ewoud %%%%%%%%%
-% filename = '17_04_20__14_22_51_SD.data'; % Mulitplicative fault only
+% filename = '17_04_20__14_22_51_SD.data'; % Multiplicative fault only
 filename = '17_07_06__10_21_07_SD.data'; % Muret with Michel
 % filename = '17_09_07__10_07_55_SD.data'; 
 
