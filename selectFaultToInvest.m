@@ -31,7 +31,7 @@ fault_id = zeros(length(dataArray{1,1}),1);
 % One surface stuck at zero fault
 % fault_id(fault_start_stop(1,23):fault_start_stop(2,23)) = 1;
 
-% One surface loss if efficiency fault
+% One surface loss of efficiency fault
 fault_id(fault_start_stop(1,1):fault_start_stop(2,1)) = 1;
 
 % All faulty phase indexes
